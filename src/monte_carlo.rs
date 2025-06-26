@@ -3,7 +3,12 @@ use bevy::{
     ecs::{schedule::IntoScheduleConfigs, system::ScheduleSystem},
 };
 
-use crate::{error::CollectError, simulation::Simulation, spawner::Spawner, traits::CollectSingle};
+use crate::{
+    error::CollectError,
+    simulation::Simulation,
+    spawner::Spawner,
+    traits::{CollectMany, CollectSingle},
+};
 
 pub struct MonteCarlo
 {
@@ -57,22 +62,39 @@ impl MonteCarlo
         self.sim.run(self.num_steps);
     }
 
-    /// Collects the value from a single component in the simulation.
+    /// Collects the value from a single entity's component in the simulation.
     ///
     /// # Errors
     ///
     /// - [`CollectError::ComponentMissing`]
     /// - [`CollectError::NoEntities`]
     /// - [`CollectError::MultipleEntities`]
-    pub fn collect_single<C: CollectSingle>(&self) -> Result<C::Out, CollectError>
+    pub fn collect_single<CS: CollectSingle>(&self) -> Result<CS::Out, CollectError>
     {
         let world = self.sim.app.world();
         let mut query = world
-            .try_query::<&C>()
+            .try_query::<&CS>()
             .ok_or(CollectError::ComponentMissing)?;
 
         let result = query.single(world)?;
 
-        Ok(result.collect())
+        Ok(CS::collect(result))
+    }
+
+    /// Collects the value from a multiple entities' components in the simulation.
+    ///
+    /// # Errors
+    ///
+    /// - [`CollectError::ComponentMissing`]
+    pub fn collect_many<CM: CollectMany>(&self) -> Result<CM::Out, CollectError>
+    {
+        let world = self.sim.app.world();
+        let mut query = world
+            .try_query::<&CM>()
+            .ok_or(CollectError::ComponentMissing)?;
+
+        let results = query.iter(world).collect::<Vec<_>>();
+
+        Ok(CM::collect(&results))
     }
 }

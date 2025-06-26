@@ -7,5 +7,12 @@ pub trait CollectSingle: Component
 {
     type Out;
 
-    fn collect(&self) -> Self::Out;
+    fn collect(component: &Self) -> Self::Out;
+}
+
+pub trait CollectMany: Component + Sized
+{
+    type Out;
+
+    fn collect(components: &[&Self]) -> Self::Out;
 }

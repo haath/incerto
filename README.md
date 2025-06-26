@@ -2,6 +2,8 @@
 
 Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
+Powered by [Bevy](https://github.com/bevyengine/bevy), which is a high-performance ECS framework.
+
 
 ## Credits
 
