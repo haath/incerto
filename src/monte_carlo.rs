@@ -1,60 +1,21 @@
-use bevy::{ecs::system::ScheduleSystem, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
-    error::CollectError,
+    error::ObserveError,
     simulation::Simulation,
-    spawner::Spawner,
     traits::{ObserveMany, ObserveSingle},
 };
 
+/// Executor of monte carlo experiments.
+///
+/// Constructed using [`super::MonteCarloBuilder`].
+///
+/// This type holds a simulation's states and provides methods for interacting with it,
+/// such as running it, resetting it, and extracting values from the entities existing
+/// within.
 pub struct MonteCarlo
 {
-    sim: Simulation,
-}
-
-pub struct MonteCarloBuilder
-{
-    sim: Simulation,
-}
-
-impl Default for MonteCarloBuilder
-{
-    fn default() -> Self
-    {
-        Self::new()
-    }
-}
-
-impl MonteCarloBuilder
-{
-    #[must_use]
-    pub fn new() -> Self
-    {
-        let sim = Simulation::new();
-
-        Self { sim }
-    }
-
-    #[must_use]
-    pub fn add_systems<M>(mut self, systems: impl IntoScheduleConfigs<ScheduleSystem, M>) -> Self
-    {
-        self.sim.app.add_systems(Update, systems);
-        self
-    }
-
-    #[must_use]
-    pub fn add_entity_spawner(mut self, entity_spawner: fn(&mut Spawner)) -> Self
-    {
-        self.sim.spawners.push(entity_spawner);
-        self
-    }
-
-    pub fn build(mut self) -> MonteCarlo
-    {
-        self.sim.reset();
-
-        MonteCarlo { sim: self.sim }
-    }
+    pub(super) sim: Simulation,
 }
 
 impl MonteCarlo
@@ -95,15 +56,15 @@ impl MonteCarlo
     ///
     /// # Errors
     ///
-    /// - [`CollectError::ComponentMissing`]
-    /// - [`CollectError::NoEntities`]
-    /// - [`CollectError::MultipleEntities`]
-    pub fn observe_single<CS: ObserveSingle>(&self) -> Result<CS::Out, CollectError>
+    /// - [`ObserveError::ComponentMissing`]
+    /// - [`ObserveError::NoEntities`]
+    /// - [`ObserveError::MultipleEntities`]
+    pub fn observe_single<CS: ObserveSingle>(&self) -> Result<CS::Out, ObserveError>
     {
         let world = self.sim.app.world();
         let mut query = world
             .try_query::<&CS>()
-            .ok_or(CollectError::ComponentMissing)?;
+            .ok_or(ObserveError::ComponentMissing)?;
 
         let result = query.single(world)?;
 
@@ -117,13 +78,13 @@ impl MonteCarlo
     ///
     /// # Errors
     ///
-    /// - [`CollectError::ComponentMissing`]
-    pub fn observe_many<CM: ObserveMany>(&self) -> Result<CM::Out, CollectError>
+    /// - [`ObserveError::ComponentMissing`]
+    pub fn observe_many<CM: ObserveMany>(&self) -> Result<CM::Out, ObserveError>
     {
         let world = self.sim.app.world();
         let mut query = world
             .try_query::<&CM>()
-            .ok_or(CollectError::ComponentMissing)?;
+            .ok_or(ObserveError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
@@ -134,13 +95,13 @@ impl MonteCarlo
     ///
     /// # Errors
     ///
-    /// - [`CollectError::ComponentMissing`]
-    pub fn count<C: Component>(&self) -> Result<usize, CollectError>
+    /// - [`ObserveError::ComponentMissing`]
+    pub fn count<C: Component>(&self) -> Result<usize, ObserveError>
     {
         let world = self.sim.app.world();
         let mut query = world
             .try_query::<&C>()
-            .ok_or(CollectError::ComponentMissing)?;
+            .ok_or(ObserveError::ComponentMissing)?;
 
         let count = query.iter(world).count();
 

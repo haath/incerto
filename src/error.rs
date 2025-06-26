@@ -1,20 +1,26 @@
 use bevy::ecs::query::QuerySingleError;
 
-#[derive(Debug, Clone, Copy)]
-pub enum CollectError
+/// An error that occured when attempting to observe the value of a component.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObserveError
 {
-    /// The component type given to `collect()` was not found in the simulation.
+    /// The component type given was not found in the simulation.
     /// This indicates that no entity with this component was ever spawned.
     ComponentMissing,
 
-    /// No entities with the component type given to `collect()` were found in the simulation.
+    /// No entities with the given component type  were found in the simulation.
     NoEntities,
 
-    /// The component type given to `collect_single()` was found on multiple entities.
+    /// The component type given was found on multiple entities.
+    /// This is an error when calling [`super::MonteCarlo::observe_single`], as only
+    /// one entity is expected to exist.
     MultipleEntities,
 }
 
-impl From<QuerySingleError> for CollectError
+unsafe impl Send for ObserveError {}
+unsafe impl Sync for ObserveError {}
+
+impl From<QuerySingleError> for ObserveError
 {
     fn from(value: QuerySingleError) -> Self
     {

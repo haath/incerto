@@ -1,17 +1,19 @@
 [package]
 name = "incerto"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Monte carlo simulations."
 readme = "README.md"
 license = "MIT"
-repository = "https://github/haath/incerto"
+repository = "https://github.com/haath/incerto"
 keywords = ["monte", "carlo", "simulation", "rng", "experiment"]
 categories = ["development-tools"]
 
 
 [dependencies]
-bevy = { version = "0.16", default-features = false }
+bevy = { version = "0.16", default-features = false, features = [
+    "multi_threaded",
+] }
 
 
 [dev-dependencies]

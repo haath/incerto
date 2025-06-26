@@ -1,8 +1,18 @@
 # incerto
 
-![Crates.io Version](https://img.shields.io/crates/v/incerto)![docs.rs](https://img.shields.io/docsrs/incerto)![Crates.io License](https://img.shields.io/crates/l/incerto)
+[![Crates.io Version](https://img.shields.io/crates/v/incerto)](https://crates.io/crates/incerto) [![docs.rs](https://img.shields.io/docsrs/incerto)](https://docs.rs/hammerwork/latest/incerto/) [![Crates.io License](https://img.shields.io/crates/l/incerto)](https://github.com/haath/incerto/blob/main/LICENSE)
 
 Rust crate for heavyweight multi-threaded Monte Carlo simulations.
+
+
+## Installation
+
+The crate can be installed from [crates.io](https://crates.io/crates/incerto).
+Currently the only dependency is [bevy@0.16](https://github.com/bevyengine/bevy), and there are no cargo features.
+
+```sh
+cargo add incerto
+```
 
 
 ## Usage
@@ -35,7 +45,7 @@ let monte_carlo: MonteCarlo = MonteCarloBuilder::new()
 It is recommended to start with the [examples](examples/coin_toss.rs).
 
 
-### Define components
+#### Define components
 
 Components will be the primary data type in the simulation.
 They can be anything, so long as they can derive the `Component` trait.
@@ -59,7 +69,7 @@ struct GroupB;
 ```
 
 
-### Spawn entities
+#### Spawn entities
 
 Entities are spawned at the beginning of each simulation using user-provided functions like this one.
 
@@ -87,7 +97,7 @@ fn spawn_coin_tossers_in_groups(spawner: &mut Spawner)
 ```
 
 
-### Implement systems
+#### Implement systems
 
 Systems are the processing logic of the simulation.
 During each step, every user-defined system is executed once.
@@ -130,7 +140,7 @@ fn multiple_queries(
 ```
 
 
-### Running the simulation
+#### Running the simulation
 
 The simulation may be executed using the `run()`, `reset()` and `run_new()` methods.
 
@@ -150,13 +160,33 @@ monte_carlo.run_new(500);
 ```
 
 
-### Collecting results
+#### Collecting results
 
 Currently the following ways of fetching simulation results are supported.
 
 - Count the number of remaining entities with a component `C` by calling `monte_carlo.count::<C>()`.
 - Read out a value of the sole existing entity with component `C` by implementing `ObserveSingle` for `C` and then calling `monte_carlo.observe_single::<C>()`.
 - Read out a value aggregated from multiple existing entities with component `C` by implementing `ObserveMany` for `C` and then calling `monte_carlo.observe_many::<C>()`.
+
+
+## Performance
+
+When it comes to experiments like Monte Carlo, performance is typically of paramount importance since it defines their limits in terms of scope, size, length and granularity. Hence why I made the decision build this crate on top of bevy. The ECS architecture on offer here is most likely the most memory-efficient and parallelizable way one can build such simulations, while still maintaining some agency of high-level programming.
+
+Bevy has proven that it handle worlds with hundreds of thousands (maybe even millions) of entities without slowing down enough to compromise 3D rendering at 60 frames per second.
+And given that this crate adds practically no runtime overhead, your monte carlo experiments will likely be limited only by your hardware and your imagination.
+
+You get to enjoy all the performance gains of the ECS automatically. However there are a few things you may want to keep in mind.
+
+- **Temporal granularity**
+    This is just a fancy way of saying `how much time is each simulated step?`. The crate itself makes no mention of time, and treats each simulation as a series of discrete equitemporal steps. Whether each step represents one minute, one hour, or one day, is up to the user and likely contextual to the kind of experiment being conducted. For example, each step might represent one hour when modelling the weather, or one day when modelling pandemic infection rates.
+    As such, there are great performance gains to be found by moving up a level in granularity. If you can manage to model the changes in the simulation in 5-minute steps instead of 1-minute steps, the simulation will magically run in one fifth of the time!
+- **System parallelization**
+    Bevy's scheduler will automatically place disjoint systems on separate threads whenever possible.
+    Two systems are disjoint when one's queries do not mutate components that the other is also accessing.
+    The rule of thumb to achieve this whenever possible, is to design each system such that:
+    - It has a singular purpose.
+    - Only queries for components that it definitely requires.
 
 
 ## Planned work

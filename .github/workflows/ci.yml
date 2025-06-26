@@ -27,7 +27,7 @@ jobs:
         run: cargo +nightly fmt -- --check
 
   lint:
-    name: Check lint
+    name: Check lint and docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -43,6 +43,9 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy -- -D warnings
+
+      - name: Run cargo doc
+        run: cargo doc
 
   build_examples:
     name: Build examples
