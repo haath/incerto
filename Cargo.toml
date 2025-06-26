@@ -1,0 +1,44 @@
+[package]
+name = "incerto"
+version = "0.1.0"
+edition = "2024"
+description = "Monte carlo simulations."
+license = "none"
+repository = "https://github/haath/incerto"
+keywords = [
+    "monte",
+    "carlo",
+    "simulation",
+    "sim",
+    "montecarlo",
+    "random",
+    "rng",
+]
+categories = ["none"]
+
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+
+# Enable high optimizations for dependencies
+[profile.dev.package."*"]
+opt-level = 3
+
+
+# Set project lint levels
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+unwrap-used = "warn"
+expect-used = "warn"
+module-name-repetitions = "allow"
+needless-pass-by-value = "allow"
+multiple-crate-versions = "allow"

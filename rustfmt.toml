@@ -1,0 +1,8 @@
+
+brace_style = "AlwaysNextLine"
+control_brace_style = "AlwaysNextLine"
+
+blank_lines_upper_bound = 1
+
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
