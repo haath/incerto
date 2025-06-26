@@ -1,1 +1,1 @@
-mod test_monte_carlo;
+mod test_counter;

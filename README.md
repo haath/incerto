@@ -19,7 +19,7 @@ In-depth knowledge of Bevy's internals is not required however, since we have ab
 ```rust
 use incerto::prelude::*;
 
-let monte_carlo: MonteCarlo = MonteCarloBuilder::new(SIMULATION_STEPS)
+let monte_carlo: MonteCarlo = MonteCarloBuilder::new()
                                 // add one or more entity spawners
                                 .add_entity_spawner(...)
                                 .add_entity_spawner(...)

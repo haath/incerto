@@ -1,7 +1,4 @@
-use bevy::{
-    app::Update,
-    ecs::{schedule::IntoScheduleConfigs, system::ScheduleSystem},
-};
+use bevy::{ecs::system::ScheduleSystem, prelude::*};
 
 use crate::{
     error::CollectError,
@@ -12,24 +9,30 @@ use crate::{
 
 pub struct MonteCarlo
 {
-    num_steps: usize,
     sim: Simulation,
 }
 
 pub struct MonteCarloBuilder
 {
-    num_steps: usize,
     sim: Simulation,
+}
+
+impl Default for MonteCarloBuilder
+{
+    fn default() -> Self
+    {
+        Self::new()
+    }
 }
 
 impl MonteCarloBuilder
 {
     #[must_use]
-    pub fn new(num_steps: usize) -> Self
+    pub fn new() -> Self
     {
         let sim = Simulation::new();
 
-        Self { num_steps, sim }
+        Self { sim }
     }
 
     #[must_use]
@@ -48,18 +51,15 @@ impl MonteCarloBuilder
 
     pub fn build(self) -> MonteCarlo
     {
-        MonteCarlo {
-            num_steps: self.num_steps,
-            sim: self.sim,
-        }
+        MonteCarlo { sim: self.sim }
     }
 }
 
 impl MonteCarlo
 {
-    pub fn run(&mut self)
+    pub fn run(&mut self, num_steps: usize)
     {
-        self.sim.run(self.num_steps);
+        self.sim.run(num_steps);
     }
 
     /// Collects the value from a single entity's component in the simulation.
@@ -96,5 +96,22 @@ impl MonteCarlo
         let results = query.iter(world).collect::<Vec<_>>();
 
         Ok(CM::collect(&results))
+    }
+
+    /// Counts the number of components in the simulation.
+    ///
+    /// # Errors
+    ///
+    /// - [`CollectError::ComponentMissing`]
+    pub fn count<C: Component>(&self) -> Result<usize, CollectError>
+    {
+        let world = self.sim.app.world();
+        let mut query = world
+            .try_query::<&C>()
+            .ok_or(CollectError::ComponentMissing)?;
+
+        let count = query.iter(world).count();
+
+        Ok(count)
     }
 }

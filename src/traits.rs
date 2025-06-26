@@ -10,6 +10,9 @@ pub trait CollectSingle: Component
     fn collect(component: &Self) -> Self::Out;
 }
 
+/// Implements the collection of a value from multiple components in the simulation
+///
+/// Needed for [`super::prelude::MonteCarlo::collect_many`].
 pub trait CollectMany: Component + Sized
 {
     type Out;

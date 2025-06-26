@@ -53,7 +53,7 @@ impl CollectMany for CoinTosser
 fn main()
 {
     // 3. Initialize a MonteCarloBuilder.
-    let mut builder = MonteCarloBuilder::new(SIMULATION_STEPS);
+    let mut builder = MonteCarloBuilder::new();
 
     // 4. Add a spawner to the simulation.
     //    These are executed once at the beginning of each simulation.
@@ -86,7 +86,7 @@ fn main()
     //    Note that the MonteCarlo object can be reused to run the simulation
     //    multiple times.
     let mut monte_carlo = builder.build();
-    monte_carlo.run();
+    monte_carlo.run(SIMULATION_STEPS);
 
     // 7. Collect results from the simulation.
     let odds_heads = monte_carlo.collect_many::<CoinTosser>().unwrap();
