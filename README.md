@@ -148,6 +148,21 @@ monte_carlo.run_new(500);
 ```
 
 
+### Collecting results
+
+Currently the following ways of fetching simulation results are supported.
+
+- Count the number of remaining entities with a component `C` by calling `monte_carlo.count::<C>()`.
+- Read out a value of the sole existing entity with component `C` by implementing `ObserveSingle` for `C` and then calling `monte_carlo.observe_single::<C>()`.
+- Read out a value aggregated from multiple existing entities with component `C` by implementing `ObserveMany` for `C` and then calling `monte_carlo.observe_many::<C>()`.
+
+
+## Planned work
+
+- Allow for filters like `With` and `Without` when observing values.
+- Add support for recoding time series during the simulation.
+
+
 ## Credits
 
 The name as well as the initial motivation behind this project came from the brilliant [Incerto](https://www.goodreads.com/series/164555-incerto) book series by Nassim Nicholas Taleb.

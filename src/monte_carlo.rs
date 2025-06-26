@@ -88,6 +88,11 @@ impl MonteCarlo
 
     /// Fetch the value from a single entity's component in the simulation.
     ///
+    /// Calling this method implies that only a single entity exists with the
+    /// given component type.
+    /// This method then uses the [`ObserveSingle`] implementation to extract
+    /// a value of [`ObserveSingle::Out`] from that component and return it.
+    ///
     /// # Errors
     ///
     /// - [`CollectError::ComponentMissing`]
@@ -106,6 +111,9 @@ impl MonteCarlo
     }
 
     /// Fetch the value from a multiple entities' components in the simulation.
+    ///
+    /// This method uses the [`ObserveMany`] implementation to extract a single value
+    /// of [`ObserveMany::Out`] from all of the existing components and return it.
     ///
     /// # Errors
     ///

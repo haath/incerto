@@ -1,4 +1,4 @@
-name: Cargo Build & Test
+name: Build & Test
 
 on:
   push:
@@ -9,7 +9,7 @@ env:
 
 jobs:
   rustfmt:
-    name: rustfmt
+    name: Check formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -26,8 +26,8 @@ jobs:
       - name: Check format
         run: cargo +nightly fmt -- --check
 
-  clippy:
-    name: clippy
+  lint:
+    name: Check lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -44,8 +44,8 @@ jobs:
       - name: Run clippy
         run: cargo clippy -- -D warnings
 
-  build-examples:
-    name: build-examples
+  build_examples:
+    name: Build examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -62,7 +62,7 @@ jobs:
         run: cargo build --examples
 
   test:
-    name: test
+    name: Run tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
