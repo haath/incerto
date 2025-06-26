@@ -39,14 +39,4 @@ impl Simulation
             spawn_fn(&mut spawner);
         }
     }
-
-    pub fn run(&mut self, num_steps: usize)
-    {
-        self.reset();
-
-        for _ in 0..num_steps
-        {
-            self.app.update();
-        }
-    }
 }

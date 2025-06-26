@@ -30,12 +30,12 @@ struct CoinTosser
 /// 2. Implement a collector for the component values.
 ///
 /// In this case we want to collect the average odds of getting heads in a coin toss.
-impl CollectMany for CoinTosser
+impl ObserveMany for CoinTosser
 {
     type Out = f64;
 
     #[allow(clippy::cast_precision_loss)]
-    fn collect(components: &[&Self]) -> Self::Out
+    fn observe(components: &[&Self]) -> Self::Out
     {
         assert!(!components.is_empty());
 
@@ -89,6 +89,6 @@ fn main()
     monte_carlo.run(SIMULATION_STEPS);
 
     // 7. Collect results from the simulation.
-    let odds_heads = monte_carlo.collect_many::<CoinTosser>().unwrap();
+    let odds_heads = monte_carlo.observe_many::<CoinTosser>().unwrap();
     println!("heads odds: {:.2} %", odds_heads * 100.0);
 }

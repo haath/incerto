@@ -128,6 +128,26 @@ fn multiple_queries(
 ```
 
 
+### Running the simulation
+
+The simulation may be executed using the `run()`, `reset()` and `run_new()` methods.
+
+```rust
+// Run the simulation for 100 steps.
+monte_carlo.run(100);
+
+// Continue the same simulation for another 200 steps.
+monte_carlo.run(200);
+
+// Run the simulation for 500 steps from the beginning.
+monte_carlo.reset();
+monte_carlo.run(500);
+
+// Can also be done like this.
+monte_carlo.run_new(500);
+```
+
+
 ## Credits
 
 The name as well as the initial motivation behind this project came from the brilliant [Incerto](https://www.goodreads.com/series/164555-incerto) book series by Nassim Nicholas Taleb.

@@ -5,22 +5,22 @@ use incerto::prelude::*;
 struct MyCounter(usize);
 
 /// Collect the counter value.
-impl CollectSingle for MyCounter
+impl ObserveSingle for MyCounter
 {
     type Out = usize;
 
-    fn collect(component: &Self) -> Self::Out
+    fn observe(component: &Self) -> Self::Out
     {
         component.0
     }
 }
 
 /// Collect the sum of all counter values.
-impl CollectMany for MyCounter
+impl ObserveMany for MyCounter
 {
     type Out = usize;
 
-    fn collect(components: &[&Self]) -> Self::Out
+    fn observe(components: &[&Self]) -> Self::Out
     {
         components.iter().map(|c| c.0).sum()
     }
@@ -45,13 +45,20 @@ fn test_counter()
 
     monte_carlo.run(NUM_STEPS);
     let counter = monte_carlo
-        .collect_single::<MyCounter>()
+        .observe_single::<MyCounter>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
+    monte_carlo.run_new(NUM_STEPS);
+    let counter = monte_carlo
+        .observe_single::<MyCounter>()
+        .expect("expect a single counter result");
+    assert_eq!(counter, NUM_STEPS);
+
+    monte_carlo.reset();
     monte_carlo.run(NUM_STEPS);
     let counter = monte_carlo
-        .collect_single::<MyCounter>()
+        .observe_single::<MyCounter>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 }
@@ -80,7 +87,7 @@ fn test_many_counters()
 
     monte_carlo.run(NUM_STEPS);
     let counter_sum = monte_carlo
-        .collect_many::<MyCounter>()
+        .observe_many::<MyCounter>()
         .expect("expect a single counter result");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);

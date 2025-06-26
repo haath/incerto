@@ -41,8 +41,8 @@ jobs:
           override: true
           components: clippy
 
-      - name: Check format
-        run: cargo clippy -D warnings
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
 
   build-examples:
     name: build-examples
@@ -58,7 +58,7 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Check format
+      - name: Build
         run: cargo build --examples
 
   test:
