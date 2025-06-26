@@ -1,6 +1,6 @@
 # incerto
 
-[![Crates.io Version](https://img.shields.io/crates/v/incerto)](https://crates.io/crates/incerto) [![docs.rs](https://img.shields.io/docsrs/incerto)](https://docs.rs/hammerwork/latest/incerto/) [![Crates.io License](https://img.shields.io/crates/l/incerto)](https://github.com/haath/incerto/blob/main/LICENSE)
+[![Crates.io Version](https://img.shields.io/crates/v/incerto)](https://crates.io/crates/incerto) [![docs.rs](https://img.shields.io/docsrs/incerto)](https://docs.rs/incerto/latest/incerto/) [![Crates.io License](https://img.shields.io/crates/l/incerto)](https://github.com/haath/incerto/blob/main/LICENSE)
 
 Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
@@ -178,10 +178,10 @@ And given that this crate adds practically no runtime overhead, your monte carlo
 
 You get to enjoy all the performance gains of the ECS automatically. However there are a few things you may want to keep in mind.
 
-- **Temporal granularity**
+- **Temporal granularity:**
     This is just a fancy way of saying `how much time is each simulated step?`. The crate itself makes no mention of time, and treats each simulation as a series of discrete equitemporal steps. Whether each step represents one minute, one hour, or one day, is up to the user and likely contextual to the kind of experiment being conducted. For example, each step might represent one hour when modelling the weather, or one day when modelling pandemic infection rates.
     As such, there are great performance gains to be found by moving up a level in granularity. If you can manage to model the changes in the simulation in 5-minute steps instead of 1-minute steps, the simulation will magically run in one fifth of the time!
-- **System parallelization**
+- **System parallelization:**
     Bevy's scheduler will automatically place disjoint systems on separate threads whenever possible.
     Two systems are disjoint when one's queries do not mutate components that the other is also accessing.
     The rule of thumb to achieve this whenever possible, is to design each system such that:
