@@ -23,12 +23,4 @@ jobs:
           override: true
 
       - name: Publish crate
-        run: |-
-          cargo release \
-                publish
-                --workspace \
-                --all-features \
-                --allow-branch HEAD \
-                --no-confirm \
-                --no-verify \
-                --execute
+        run: cargo publish --all-features\
