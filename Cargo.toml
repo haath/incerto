@@ -3,6 +3,7 @@ name = "incerto"
 version = "0.1.0"
 edition = "2024"
 description = "Monte carlo simulations."
+readme = "README.md"
 license = "none"
 repository = "https://github/haath/incerto"
 keywords = [
@@ -14,7 +15,7 @@ keywords = [
     "random",
     "rng",
 ]
-categories = ["none"]
+categories = ["development-tools"]
 
 
 [dependencies]
