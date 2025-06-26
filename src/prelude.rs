@@ -1,4 +1,4 @@
-pub use bevy::prelude::{Bundle, Component, Query, Res, ResMut, With, Without};
+pub use bevy::prelude::{Bundle, Component, Entity, Query, Res, ResMut, With, Without};
 
 pub use super::{
     error::*,

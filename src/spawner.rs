@@ -4,8 +4,9 @@ pub struct Spawner<'a>(pub(crate) &'a mut World);
 
 impl Spawner<'_>
 {
-    pub fn spawn(&mut self, entity: impl Bundle)
+    /// Spawns a single entity in the simulation.
+    pub fn spawn(&mut self, entity: impl Bundle) -> Entity
     {
-        self.0.spawn(entity);
+        self.0.spawn(entity).id()
     }
 }

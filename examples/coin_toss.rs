@@ -2,9 +2,14 @@
 //!
 //! This example showcases a simple simulation where the goal is to measure the odds of
 //! a coin toss turning up heads.
-//! The entities are coin-tossers, who on each step off the simulation toss a coin and record their result.
+//!
+//! The entities are coin-tossers, who on each step of the simulation toss a coin and record their result.
 //! We spawn a number of these coin-tossers, and at the end of the simulation collect the average of
 //! the odds that each one of them observed.
+//!
+//! Note that the entities in this example do not interact with each other, and are therefore independent.
+//! In such a case, running a single simulation with multiple entities is equivalent to running multiple
+//! simulations with a single entity.
 
 #![allow(clippy::unwrap_used)]
 use incerto::prelude::*;
