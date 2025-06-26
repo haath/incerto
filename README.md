@@ -1,5 +1,7 @@
 # incerto
 
+![Crates.io Version](https://img.shields.io/crates/v/incerto)![docs.rs](https://img.shields.io/docsrs/incerto)![Crates.io License](https://img.shields.io/crates/l/incerto)
+
 Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
 
@@ -161,6 +163,7 @@ Currently the following ways of fetching simulation results are supported.
 
 - Allow for filters like `With` and `Without` when observing values.
 - Add support for recoding time series during the simulation.
+- Add some utilities to the crate for easy access to random values, noise etc
 
 
 ## Credits

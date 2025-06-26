@@ -6,15 +6,7 @@ description = "Monte carlo simulations."
 readme = "README.md"
 license = "MIT"
 repository = "https://github/haath/incerto"
-keywords = [
-    "monte",
-    "carlo",
-    "simulation",
-    "sim",
-    "montecarlo",
-    "random",
-    "rng",
-]
+keywords = ["monte", "carlo", "simulation", "rng", "experiment"]
 categories = ["development-tools"]
 
 

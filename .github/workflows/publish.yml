@@ -23,4 +23,4 @@ jobs:
           override: true
 
       - name: Publish crate
-        run: cargo publish --all-features\
+        run: cargo publish --all-features
