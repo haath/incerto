@@ -165,8 +165,7 @@ simulation.run_new(500);
 Currently the following ways of fetching simulation results are supported.
 
 - Count the number of entities with a component `C` by calling `simulation.count::<C>()`.
-- Read out a value of the sole existing entity with component `C` by implementing `ObserveSingle` for `C` and then calling `simulation.observe_single::<C>()`.
-- Read out a value aggregated from multiple existing entities with component `C` by implementing `ObserveMany` for `C` and then calling `simulation.observe_many::<C>()`.
+- Read out a value aggregated from multiple existing entities with component `C` by implementing `Observe<O>` for `C` and then calling `simulation.observe::<C, O>()`. This will return the single value of type `O` prepared by the implementation of the trait.
 
 
 ## Performance

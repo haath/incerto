@@ -30,7 +30,7 @@ struct CoinTosser
 /// 2. Implement a collector for the component values.
 ///
 /// In this case we want to collect the average odds of getting heads in a coin toss.
-impl ObserveMany<f64> for CoinTosser
+impl Observe<f64> for CoinTosser
 {
     #[allow(clippy::cast_precision_loss)]
     fn observe(components: &[&Self]) -> f64
@@ -87,6 +87,6 @@ fn main()
     simulation.run(SIMULATION_STEPS);
 
     // 7. Collect results from the simulation.
-    let odds_heads = simulation.observe_many::<CoinTosser, _>().unwrap();
+    let odds_heads = simulation.observe::<CoinTosser, _>().unwrap();
     println!("heads odds: {:.2} %", odds_heads * 100.0);
 }

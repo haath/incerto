@@ -4,17 +4,8 @@ use incerto::prelude::*;
 #[derive(Component)]
 struct MyCounter(usize);
 
-/// Collect the counter value.
-impl ObserveSingle<usize> for MyCounter
-{
-    fn observe(component: &Self) -> usize
-    {
-        component.0
-    }
-}
-
 /// Collect the sum of all counter values.
-impl ObserveMany<usize> for MyCounter
+impl Observe<usize> for MyCounter
 {
     fn observe(components: &[&Self]) -> usize
     {
@@ -41,20 +32,20 @@ fn test_counter()
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter, _>()
+        .observe::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.run_new(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter, _>()
+        .observe::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.reset();
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter, _>()
+        .observe::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 }
@@ -83,7 +74,7 @@ fn test_many_counters()
 
     simulation.run(NUM_STEPS);
     let counter_sum = simulation
-        .observe_many::<MyCounter, _>()
+        .observe::<MyCounter, _>()
         .expect("expect a single counter result");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);

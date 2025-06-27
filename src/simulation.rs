@@ -1,11 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{
-    Spawner,
-    error::ObserveError,
-    plugins::StepCounterPlugin,
-    traits::{ObserveMany, ObserveSingle},
-};
+use crate::{Spawner, error::ObserveError, plugins::StepCounterPlugin, traits::Observe};
 
 /// Executor of monte carlo experiments.
 ///
@@ -59,39 +54,15 @@ impl Simulation
         }
     }
 
-    /// Fetch the value from a single entity's component in the simulation.
-    ///
-    /// Calling this method implies that only a single entity exists with the
-    /// given component type.
-    /// This method then uses the [`ObserveSingle`] implementation to extract
-    /// a value of [`ObserveSingle::Out`] from that component and return it.
-    ///
-    /// # Errors
-    ///
-    /// - [`ObserveError::ComponentMissing`]
-    /// - [`ObserveError::NoEntities`]
-    /// - [`ObserveError::MultipleEntities`]
-    pub fn observe_single<CS: ObserveSingle<Out>, Out>(&self) -> Result<Out, ObserveError>
-    {
-        let world = self.app.world();
-        let mut query = world
-            .try_query::<&CS>()
-            .ok_or(ObserveError::ComponentMissing)?;
-
-        let result = query.single(world)?;
-
-        Ok(CS::observe(result))
-    }
-
     /// Fetch the value from a multiple entities' components in the simulation.
     ///
-    /// This method uses the [`ObserveMany`] implementation to extract a single value
-    /// of [`ObserveMany::Out`] from all of the existing components and return it.
+    /// This method uses the [`Observe<O>`] implementation to extract a single value
+    /// of type `O` from all of the existing components and return it.
     ///
     /// # Errors
     ///
     /// - [`ObserveError::ComponentMissing`]
-    pub fn observe_many<CM: ObserveMany<Out>, Out>(&self) -> Result<Out, ObserveError>
+    pub fn observe<CM: Observe<Out>, Out>(&self) -> Result<Out, ObserveError>
     {
         let world = self.app.world();
         let mut query = world
