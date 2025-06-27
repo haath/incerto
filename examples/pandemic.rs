@@ -15,7 +15,7 @@
 use incerto::prelude::*;
 use rand::prelude::*;
 
-const SIMULATION_STEPS: usize = 1_000_000;
+const SIMULATION_STEPS: usize = 100_000;
 const INITIAL_POPULATION: usize = 1_000;
 const GRID_SIZE: usize = 50;
 
@@ -44,6 +44,13 @@ struct Position
 }
 
 /// Marker component indicating that a person is infected.
+///
+/// Note that adding/removing components to entities at runtime is
+/// typically inefficient.
+/// It is done here mainly to showcase how to do it by using [`Commands`].
+///
+/// In a real scenario it would be more performant to mark entities as
+/// healthy or infected using an enum.
 #[derive(Component)]
 struct Infected;
 

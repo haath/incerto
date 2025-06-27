@@ -186,7 +186,14 @@ You get to enjoy all the performance gains of the ECS automatically. However the
     Two systems are disjoint when one's queries do not mutate components that the other is also accessing.
     The rule of thumb to achieve this whenever possible, is to design each system such that:
     - It has a singular purpose.
-    - Only queries for components that it definitely requires.
+    - Only queries for components that it definitely needs.
+- **Singular components:**
+    It may be tempting to simplify entity design by putting all of an entity's data in a single component, especially if one is used to object-oriented languages. However, doing so will impact your performance in the long term since it would render system parallelization neigh impossible.
+    The general recommendation is to favor composition, meaning that each distinct attribute of an entity should be in a separate component. Imagine, for example, how since a person's age and body temperature are largely independent, systems attempting to read or update these values should be allowed to run in parallel.
+- **Entity archetypes:**
+    Bevy likes to put similar-looking entities together in groups called *archetypes*, which enables it to more efficiently store such entities in shared tables. So if components are added to or removed from existing entities at runtime the archetype tables have to be remade, which is a drain on performance.
+    So in case where an entity's state needs to change often in the simulation, consider using persistent enums instead.
+
 
 
 ## Planned work

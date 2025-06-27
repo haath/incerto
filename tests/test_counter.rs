@@ -5,22 +5,18 @@ use incerto::prelude::*;
 struct MyCounter(usize);
 
 /// Collect the counter value.
-impl ObserveSingle for MyCounter
+impl ObserveSingle<usize> for MyCounter
 {
-    type Out = usize;
-
-    fn observe(component: &Self) -> Self::Out
+    fn observe(component: &Self) -> usize
     {
         component.0
     }
 }
 
 /// Collect the sum of all counter values.
-impl ObserveMany for MyCounter
+impl ObserveMany<usize> for MyCounter
 {
-    type Out = usize;
-
-    fn observe(components: &[&Self]) -> Self::Out
+    fn observe(components: &[&Self]) -> usize
     {
         components.iter().map(|c| c.0).sum()
     }
@@ -45,20 +41,20 @@ fn test_counter()
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter>()
+        .observe_single::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.run_new(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter>()
+        .observe_single::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.reset();
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe_single::<MyCounter>()
+        .observe_single::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 }
@@ -87,7 +83,7 @@ fn test_many_counters()
 
     simulation.run(NUM_STEPS);
     let counter_sum = simulation
-        .observe_many::<MyCounter>()
+        .observe_many::<MyCounter, _>()
         .expect("expect a single counter result");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);

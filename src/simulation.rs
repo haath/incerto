@@ -71,7 +71,7 @@ impl Simulation
     /// - [`ObserveError::ComponentMissing`]
     /// - [`ObserveError::NoEntities`]
     /// - [`ObserveError::MultipleEntities`]
-    pub fn observe_single<CS: ObserveSingle>(&self) -> Result<CS::Out, ObserveError>
+    pub fn observe_single<CS: ObserveSingle<Out>, Out>(&self) -> Result<Out, ObserveError>
     {
         let world = self.app.world();
         let mut query = world
@@ -91,7 +91,7 @@ impl Simulation
     /// # Errors
     ///
     /// - [`ObserveError::ComponentMissing`]
-    pub fn observe_many<CM: ObserveMany>(&self) -> Result<CM::Out, ObserveError>
+    pub fn observe_many<CM: ObserveMany<Out>, Out>(&self) -> Result<Out, ObserveError>
     {
         let world = self.app.world();
         let mut query = world
