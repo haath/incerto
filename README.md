@@ -167,6 +167,7 @@ Currently the following ways of fetching simulation results are supported.
 - Count the number of entities with a component `C` by calling `simulation.count::<C>()`.
 - Read out a value aggregated from multiple existing entities with component `C` by implementing `Sample<O>` for `C` and then calling `simulation.sample::<C, O>()`. This will return the single value of type `O` prepared by the implementation of the trait.
     - Or `simulation.sample_filtered::<C, F, O>()`, with `F` being a query filter, to only sample from specific entities.
+- Record and collect time series data of values sampled from components. Call `builder.record_time_series::<C, O>()` on the builder to set up the recording, and then `simulation.get_time_series::<C, O>()` to collect the results.
 
 
 ## Performance
@@ -198,7 +199,6 @@ You get to enjoy all the performance gains of the ECS automatically. However the
 
 ## Planned work
 
-- Add support for recoding time series during the simulation.
 - Add some utilities to the crate for easy access to random values, noise etc
 
 

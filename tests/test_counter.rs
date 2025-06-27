@@ -80,6 +80,7 @@ fn test_many_counters()
     let mut simulation = builder.build();
 
     simulation.run(NUM_STEPS);
+
     let counter_sum = simulation
         .sample::<MyCounter, _>()
         .expect("expected to sample the counter sum");
@@ -133,4 +134,34 @@ fn test_counters_two_groups()
         .sample_filtered::<MyCounter, With<GroupB>, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(group_b_sum, NUM_STEPS * NUM_COUNTERS_PER_GROUP);
+}
+
+#[test]
+fn test_counter_time_series()
+{
+    const NUM_STEPS: usize = 100;
+
+    let builder = SimulationBuilder::new()
+        .add_systems(|mut query: Query<&mut MyCounter>| {
+            let mut counter = query.single_mut().expect("expect a single counter entity");
+
+            counter.0 += 1;
+        })
+        .add_entity_spawner(|spawner| {
+            spawner.spawn(MyCounter(0));
+        })
+        .record_time_series::<MyCounter, _>(10);
+
+    let mut simulation = builder.build();
+
+    simulation.run(NUM_STEPS);
+
+    let values = simulation
+        .get_time_series::<MyCounter, _>()
+        .expect("time series not recorded")
+        .into_iter()
+        .copied()
+        .collect::<Vec<_>>();
+
+    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
 }

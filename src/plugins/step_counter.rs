@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Default, Debug, Deref)]
 pub struct StepCounter(usize);
 
 pub struct StepCounterPlugin;
@@ -11,7 +11,9 @@ impl Plugin for StepCounterPlugin
     {
         Self::init(app);
 
-        app.add_systems(PreUpdate, step_counter_increment);
+        // increment the step counter before any other systems in the simulation
+        // this enables a reliable step number reading in PreUpdate
+        app.add_systems(First, step_counter_increment);
     }
 }
 

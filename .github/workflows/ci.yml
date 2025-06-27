@@ -45,7 +45,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Run cargo doc
-        run: cargo doc
+        run: cargo doc --no-deps
 
   build_test:
     name: Build examples and run tests

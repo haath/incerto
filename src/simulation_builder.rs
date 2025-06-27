@@ -1,6 +1,15 @@
-use bevy::{app::ScheduleRunnerPlugin, ecs::system::ScheduleSystem, prelude::*};
+use bevy::{
+    app::ScheduleRunnerPlugin,
+    ecs::{query::QueryFilter, system::ScheduleSystem},
+    prelude::*,
+};
 
-use crate::{plugins::StepCounterPlugin, simulation::Simulation, spawner::Spawner};
+use crate::{
+    Sample,
+    plugins::{StepCounterPlugin, TimeSeriesPlugin},
+    simulation::Simulation,
+    spawner::Spawner,
+};
 
 /// Builder type used to construct a [`Simulation`] object.
 ///
@@ -83,6 +92,67 @@ impl SimulationBuilder
     pub fn add_entity_spawner(mut self, entity_spawner: fn(&mut Spawner)) -> Self
     {
         self.sim.spawners.push(entity_spawner);
+        self
+    }
+
+    /// Sets up the recording of a time series.
+    ///
+    /// The values in the time series will be values of type `O`
+    /// sampled from all components `C` in the simulation according to the
+    /// implementation of [`Sample<O>`] for `C`.
+    ///
+    /// The sampling will occur once every `sample_interval` steps.
+    /// Specifically at the end of the step, after all user-defined systems have run.
+    ///
+    /// Note that it is currently not possible to record more than one time series
+    /// with the same pair of component (`C`) and value (`O`).
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if:
+    ///
+    /// - The given `sample_interval` is `0`.
+    /// - Recording a time series has already been started for the same `C` and `O`.
+    #[must_use]
+    #[inline]
+    pub fn record_time_series<C, O>(self, sample_interval: usize) -> Self
+    where
+        C: Sample<O>,
+        O: Send + Sync + 'static,
+    {
+        self.record_time_series_filtered::<C, (), O>(sample_interval)
+    }
+
+    /// Sets up the recording of a time series.
+    ///
+    /// The values in the time series will be values of type `O`
+    /// sampled from components `C`, from all entities selected by the filter `F`
+    /// in the simulation according to the implementation of [`Sample<O>`] for `C`.
+    ///
+    /// The sampling will occur once every `sample_interval` steps.
+    /// Specifically at the end of the step, after all user-defined systems have run.
+    ///
+    /// Note that it is currently not possible to record more than one time series
+    /// with the same pair of component (`C`) and value (`O`).
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if:
+    ///
+    /// - The given `sample_interval` is `0`.
+    /// - Recording a time series has already been started for the same `C` and `O`.
+    #[must_use]
+    pub fn record_time_series_filtered<C, F, O>(mut self, sample_interval: usize) -> Self
+    where
+        C: Sample<O>,
+        F: QueryFilter + Send + Sync + 'static,
+        O: Send + Sync + 'static,
+    {
+        assert!(sample_interval > 0);
+
+        self.sim
+            .app
+            .add_plugins(TimeSeriesPlugin::<C, F, O>::new(sample_interval));
         self
     }
 

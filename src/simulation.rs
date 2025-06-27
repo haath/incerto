@@ -1,12 +1,17 @@
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{Spawner, error::SampleError, plugins::StepCounterPlugin, traits::Sample};
+use crate::{
+    Spawner,
+    error::SampleError,
+    plugins::{StepCounterPlugin, TimeSeries},
+    traits::Sample,
+};
 
 /// Executor of monte carlo experiments.
 ///
 /// Constructed using [`super::SimulationBuilder`].
 ///
-/// This type holds a simulation's states and provides methods for interacting with it,
+/// This type holds a simulation's state and provides methods for interacting with it,
 /// such as running it, resetting it, and extracting values from the entities existing
 /// within.
 pub struct Simulation
@@ -62,16 +67,16 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample<CM: Sample<Out>, Out>(&self) -> Result<Out, SampleError>
+    pub fn sample<C: Sample<Out>, Out>(&self) -> Result<Out, SampleError>
     {
         let world = self.app.world();
         let mut query = world
-            .try_query::<&CM>()
+            .try_query::<&C>()
             .ok_or(SampleError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
-        Ok(CM::sample(&results))
+        Ok(C::sample(&results))
     }
 
     /// Fetch the value from a multiple entities' components in the simulation.
@@ -83,17 +88,16 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample_filtered<CM: Sample<Out>, F: QueryFilter, Out>(&self)
-    -> Result<Out, SampleError>
+    pub fn sample_filtered<C: Sample<Out>, F: QueryFilter, Out>(&self) -> Result<Out, SampleError>
     {
         let world = self.app.world();
         let mut query = world
-            .try_query_filtered::<&CM, F>()
+            .try_query_filtered::<&C, F>()
             .ok_or(SampleError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
-        Ok(CM::sample(&results))
+        Ok(C::sample(&results))
     }
 
     /// Counts the number of entities in the simulation that can be selected
@@ -115,5 +119,27 @@ impl Simulation
         let count = query.iter(world).count();
 
         Ok(count)
+    }
+
+    /// Retrieve the values of a time series that was recorded during the simulation.
+    ///
+    /// This is possible only after having called [`crate::SimulationBuilder::record_time_series`] or
+    /// [`crate::SimulationBuilder::record_time_series_filtered`] during the construction of the simulation.
+    ///
+    /// # Errors
+    ///
+    /// - [`SampleError::TimeSeriesNotRecorded`]
+    pub fn get_time_series<C: Sample<Out>, Out>(&self) -> Result<Vec<&Out>, SampleError>
+    where
+        Out: Send + Sync + 'static,
+    {
+        let world = self.app.world();
+        let time_series = world
+            .get_resource::<TimeSeries<C, Out>>()
+            .ok_or(SampleError::TimeSeriesNotRecorded)?;
+
+        let values = time_series.values.iter().by_ref().collect();
+
+        Ok(values)
     }
 }
