@@ -52,8 +52,8 @@ impl ObserveMany for CoinTosser
 
 fn main()
 {
-    // 3. Initialize a MonteCarloBuilder.
-    let mut builder = MonteCarloBuilder::new();
+    // 3. Initialize a SimulationBuilder.
+    let mut builder = SimulationBuilder::new();
 
     // 4. Add a spawner to the simulation.
     //    These are executed once at the beginning of each simulation.
@@ -83,12 +83,12 @@ fn main()
     });
 
     // 6. Create and run the simulation.
-    //    Note that the MonteCarlo object can be reused to run the simulation
+    //    Note that the Simulation object can be reused to run the simulation
     //    multiple times.
-    let mut monte_carlo = builder.build();
-    monte_carlo.run(SIMULATION_STEPS);
+    let mut simulation = builder.build();
+    simulation.run(SIMULATION_STEPS);
 
     // 7. Collect results from the simulation.
-    let odds_heads = monte_carlo.observe_many::<CoinTosser>().unwrap();
+    let odds_heads = simulation.observe_many::<CoinTosser>().unwrap();
     println!("heads odds: {:.2} %", odds_heads * 100.0);
 }

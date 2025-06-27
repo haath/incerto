@@ -31,7 +31,7 @@ fn test_counter()
 {
     const NUM_STEPS: usize = 100;
 
-    let builder = MonteCarloBuilder::new()
+    let builder = SimulationBuilder::new()
         .add_systems(|mut query: Query<&mut MyCounter>| {
             let mut counter = query.single_mut().expect("expect a single counter entity");
 
@@ -41,23 +41,23 @@ fn test_counter()
             spawner.spawn(MyCounter(0));
         });
 
-    let mut monte_carlo = builder.build();
+    let mut simulation = builder.build();
 
-    monte_carlo.run(NUM_STEPS);
-    let counter = monte_carlo
+    simulation.run(NUM_STEPS);
+    let counter = simulation
         .observe_single::<MyCounter>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
-    monte_carlo.run_new(NUM_STEPS);
-    let counter = monte_carlo
+    simulation.run_new(NUM_STEPS);
+    let counter = simulation
         .observe_single::<MyCounter>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
-    monte_carlo.reset();
-    monte_carlo.run(NUM_STEPS);
-    let counter = monte_carlo
+    simulation.reset();
+    simulation.run(NUM_STEPS);
+    let counter = simulation
         .observe_single::<MyCounter>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
@@ -69,7 +69,7 @@ fn test_many_counters()
     const NUM_STEPS: usize = 100;
     const NUM_COUNTERS: usize = 56;
 
-    let builder = MonteCarloBuilder::new()
+    let builder = SimulationBuilder::new()
         .add_systems(|mut query: Query<&mut MyCounter>| {
             for mut counter in &mut query
             {
@@ -83,10 +83,10 @@ fn test_many_counters()
             }
         });
 
-    let mut monte_carlo = builder.build();
+    let mut simulation = builder.build();
 
-    monte_carlo.run(NUM_STEPS);
-    let counter_sum = monte_carlo
+    simulation.run(NUM_STEPS);
+    let counter_sum = simulation
         .observe_many::<MyCounter>()
         .expect("expect a single counter result");
 

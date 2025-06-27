@@ -1,18 +1,18 @@
-use bevy::{ecs::system::ScheduleSystem, prelude::*};
+use bevy::{app::ScheduleRunnerPlugin, ecs::system::ScheduleSystem, prelude::*};
 
-use crate::{prelude::MonteCarlo, simulation::Simulation, spawner::Spawner};
+use crate::{plugins::StepCounterPlugin, simulation::Simulation, spawner::Spawner};
 
-/// Builder type used to construct a [`MonteCarlo`] object.
+/// Builder type used to construct a [`Simulation`] object.
 ///
 /// The builder is used to logically separate the construction of a simulation with its execution.
-/// Once built, a [`MonteCarlo`] object may be reused in order to intermitently run simulation steps,
+/// Once built, a [`Simulation`] object may be reused in order to intermitently run simulation steps,
 /// restart the simulation from the beginning, collect results and so on.
-pub struct MonteCarloBuilder
+pub struct SimulationBuilder
 {
     sim: Simulation,
 }
 
-impl Default for MonteCarloBuilder
+impl Default for SimulationBuilder
 {
     fn default() -> Self
     {
@@ -20,12 +20,22 @@ impl Default for MonteCarloBuilder
     }
 }
 
-impl MonteCarloBuilder
+impl SimulationBuilder
 {
     #[must_use]
     pub fn new() -> Self
     {
-        let sim = Simulation::new();
+        let mut app = App::new();
+
+        app.add_plugins(MinimalPlugins.set(ScheduleRunnerPlugin::run_once()))
+            .add_plugins(StepCounterPlugin);
+
+        app.update();
+
+        let sim = Simulation {
+            app,
+            spawners: Vec::new(),
+        };
 
         Self { sim }
     }
@@ -63,10 +73,10 @@ impl MonteCarloBuilder
         self
     }
 
-    pub fn build(mut self) -> MonteCarlo
+    pub fn build(mut self) -> Simulation
     {
         self.sim.reset();
 
-        MonteCarlo { sim: self.sim }
+        self.sim
     }
 }

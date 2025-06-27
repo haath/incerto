@@ -31,7 +31,7 @@ In-depth knowledge of Bevy's internals is not required however, since we have ab
 ```rust
 use incerto::prelude::*;
 
-let monte_carlo: MonteCarlo = MonteCarloBuilder::new()
+let simulation: Simulation = SimulationBuilder::new()
                                 // add one or more entity spawners
                                 .add_entity_spawner(...)
                                 .add_entity_spawner(...)
@@ -146,17 +146,17 @@ The simulation may be executed using the `run()`, `reset()` and `run_new()` meth
 
 ```rust
 // Run the simulation for 100 steps.
-monte_carlo.run(100);
+simulation.run(100);
 
 // Continue the same simulation for another 200 steps.
-monte_carlo.run(200);
+simulation.run(200);
 
 // Run the simulation for 500 steps from the beginning.
-monte_carlo.reset();
-monte_carlo.run(500);
+simulation.reset();
+simulation.run(500);
 
 // Can also be done like this.
-monte_carlo.run_new(500);
+simulation.run_new(500);
 ```
 
 
@@ -164,16 +164,16 @@ monte_carlo.run_new(500);
 
 Currently the following ways of fetching simulation results are supported.
 
-- Count the number of remaining entities with a component `C` by calling `monte_carlo.count::<C>()`.
-- Read out a value of the sole existing entity with component `C` by implementing `ObserveSingle` for `C` and then calling `monte_carlo.observe_single::<C>()`.
-- Read out a value aggregated from multiple existing entities with component `C` by implementing `ObserveMany` for `C` and then calling `monte_carlo.observe_many::<C>()`.
+- Count the number of entities with a component `C` by calling `simulation.count::<C>()`.
+- Read out a value of the sole existing entity with component `C` by implementing `ObserveSingle` for `C` and then calling `simulation.observe_single::<C>()`.
+- Read out a value aggregated from multiple existing entities with component `C` by implementing `ObserveMany` for `C` and then calling `simulation.observe_many::<C>()`.
 
 
 ## Performance
 
-When it comes to experiments like Monte Carlo, performance is typically of paramount importance since it defines their limits in terms of scope, size, length and granularity. Hence why I made the decision build this crate on top of bevy. The ECS architecture on offer here is most likely the most memory-efficient and parallelizable way one can build such simulations, while still maintaining some agency of high-level programming.
+When it comes to experiments like Monte Carlo, performance is typically of paramount importance since it defines their limits in terms of scope, size, length and granularity. Hence why I made the decision build this crate on top of bevy. The ECS architecture on offer here is likely the most memory-efficient and parallelizable way one can build such simulations, while still maintaining some agency of high-level programming.
 
-Bevy has proven that it handle worlds with hundreds of thousands (maybe even millions) of entities without slowing down enough to compromise 3D rendering at 60 frames per second.
+Bevy has proven that it can handle worlds with hundreds of thousands (maybe even millions) of entities without slowing down enough to compromise 3D rendering at 60 frames per second.
 And given that this crate adds practically no runtime overhead, your monte carlo experiments will likely be limited only by your hardware and your imagination.
 
 You get to enjoy all the performance gains of the ECS automatically. However there are a few things you may want to keep in mind.

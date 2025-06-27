@@ -11,20 +11,19 @@
 //! * Implement systems that update the entities on each simulation step.
 //!
 //! All relevant types should be in the [`prelude`].
-//! The primary type used to run experiments is [`MonteCarlo`].
+//! The primary type used to run experiments is [`Simulation`].
 
 pub mod prelude;
 
 mod error;
-mod monte_carlo;
-mod monte_carlo_builder;
 mod plugins;
 mod simulation;
+mod simulation_builder;
 mod spawner;
 mod traits;
 
 pub use error::*;
-pub use monte_carlo::MonteCarlo;
-pub use monte_carlo_builder::MonteCarloBuilder;
+pub use simulation::Simulation;
+pub use simulation_builder::SimulationBuilder;
 pub use spawner::Spawner;
 pub use traits::*;

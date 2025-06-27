@@ -12,7 +12,7 @@ pub enum ObserveError
     NoEntities,
 
     /// The component type given was found on multiple entities.
-    /// This is an error when calling [`super::MonteCarlo::observe_single`], as only
+    /// This is an error when calling [`super::Simulation::observe_single`], as only
     /// one entity is expected to exist.
     MultipleEntities,
 }

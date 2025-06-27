@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 /// Implements the collection of a single component's value from the simulation.
 ///
-/// Needed for [`super::prelude::MonteCarlo::observe_single`].
+/// Needed for [`super::prelude::Simulation::observe_single`].
 pub trait ObserveSingle: Component
 {
     type Out;
@@ -12,7 +12,7 @@ pub trait ObserveSingle: Component
 
 /// Implements the collection of a value from multiple components in the simulation
 ///
-/// Needed for [`super::prelude::MonteCarlo::observe_many`].
+/// Needed for [`super::prelude::Simulation::observe_many`].
 pub trait ObserveMany: Component + Sized
 {
     type Out;

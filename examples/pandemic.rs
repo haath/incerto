@@ -50,7 +50,7 @@ struct Infected;
 fn main()
 {
     // Build the simulation.
-    let mut monte_carlo = MonteCarloBuilder::new()
+    let mut simulation = SimulationBuilder::new()
         .add_entity_spawner(spawn_people)
         .add_systems((
             people_move,
@@ -61,11 +61,11 @@ fn main()
         .build();
 
     // Run the simulation once.
-    monte_carlo.run(SIMULATION_STEPS);
+    simulation.run(SIMULATION_STEPS);
 
     // Count the number of survivors remaining.
-    let survivors = monte_carlo.count::<Person>().unwrap();
-    let infected = monte_carlo.count::<Infected>().unwrap();
+    let survivors = simulation.count::<Person>().unwrap();
+    let infected = simulation.count::<Infected>().unwrap();
 
     println!("survivors: {survivors}, infected: {infected}");
 }

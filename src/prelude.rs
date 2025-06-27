@@ -3,6 +3,6 @@ pub use bevy::prelude::{
 };
 
 pub use super::{
-    error::*, monte_carlo::MonteCarlo, monte_carlo_builder::MonteCarloBuilder, spawner::Spawner,
+    error::*, simulation::Simulation, simulation_builder::SimulationBuilder, spawner::Spawner,
     traits::*,
 };
