@@ -71,10 +71,13 @@ fn main()
     simulation.run(SIMULATION_STEPS);
 
     // Count the number of survivors remaining.
-    let survivors = simulation.count::<Person>().unwrap();
-    let infected = simulation.count::<Infected>().unwrap();
+    let survivors = simulation.count::<With<Person>>().unwrap();
+    let infected = simulation.count::<With<Infected>>().unwrap();
+    let healthy = simulation
+        .count::<(With<Person>, Without<Infected>)>()
+        .unwrap();
 
-    println!("survivors: {survivors}, infected: {infected}");
+    println!("survivors: {survivors}, infected: {infected}, healthy: {healthy}");
 }
 
 /// Spawns the initial population placed uniformly around the grid.

@@ -96,16 +96,20 @@ impl Simulation
         Ok(CM::sample(&results))
     }
 
-    /// Counts the number of components in the simulation.
+    /// Counts the number of entities in the simulation that can be selected
+    /// with a given filter `F`.
+    ///
+    /// The filter is a query filter, meaning it shall use selectors like
+    /// [`With`] and [`Without`].
     ///
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn count<C: Component>(&self) -> Result<usize, SampleError>
+    pub fn count<F: QueryFilter>(&self) -> Result<usize, SampleError>
     {
         let world = self.app.world();
         let mut query = world
-            .try_query::<&C>()
+            .try_query_filtered::<(), F>()
             .ok_or(SampleError::ComponentMissing)?;
 
         let count = query.iter(world).count();
