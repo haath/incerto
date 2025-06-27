@@ -1,5 +1,6 @@
 pub use bevy::prelude::{
-    Bundle, Commands, Component, Entity, IntoScheduleConfigs, Query, Res, ResMut, With, Without,
+    Bundle, Commands, Component, Entity, Event, IntoScheduleConfigs, Query, Res, ResMut, With,
+    Without,
 };
 
 pub use super::{

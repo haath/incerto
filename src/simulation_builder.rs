@@ -54,6 +54,19 @@ impl SimulationBuilder
         self
     }
 
+    /// Register an event type in the simulation.
+    ///
+    /// These are [`bevy events`](https://bevy-cheatbook.github.io/programming/events.html).
+    ///
+    /// After registering, events can be used in simulation systems by arguments such as
+    /// [`EventReader<E>`] and [`EventWriter<E>`].
+    #[must_use]
+    pub fn register_event<E: Event>(mut self) -> Self
+    {
+        self.sim.app.add_event::<E>();
+        self
+    }
+
     /// Add an entity spawner function to the simulation.
     ///
     /// In the beginning of ever simulation, each of the spawner functions added here
