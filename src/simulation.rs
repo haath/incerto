@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::query::QueryFilter, prelude::*};
 
 use crate::{Spawner, error::SampleError, plugins::StepCounterPlugin, traits::Sample};
 
@@ -54,7 +54,7 @@ impl Simulation
         }
     }
 
-    /// Fetch the value from a multiple entities' components in the simulation.
+    /// Fetch the value from a all entities' components in the simulation.
     ///
     /// This method uses the [`Sample<O>`] implementation to extract a single value
     /// of type `O` from all of the existing components and return it.
@@ -67,6 +67,28 @@ impl Simulation
         let world = self.app.world();
         let mut query = world
             .try_query::<&CM>()
+            .ok_or(SampleError::ComponentMissing)?;
+
+        let results = query.iter(world).collect::<Vec<_>>();
+
+        Ok(CM::sample(&results))
+    }
+
+    /// Fetch the value from a multiple entities' components in the simulation.
+    ///
+    /// This method uses the [`Sample<O>`] implementation to extract a single value
+    /// of type `O` from all of the components on entities selected with
+    /// the filter `F`, and return it.
+    ///
+    /// # Errors
+    ///
+    /// - [`SampleError::ComponentMissing`]
+    pub fn sample_filtered<CM: Sample<Out>, F: QueryFilter, Out>(&self)
+    -> Result<Out, SampleError>
+    {
+        let world = self.app.world();
+        let mut query = world
+            .try_query_filtered::<&CM, F>()
             .ok_or(SampleError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
