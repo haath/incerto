@@ -5,7 +5,7 @@
 //! Additionally, on each simulation step there is a chance that an infected person may spontaneously
 //! recover from the disease, or die.
 //!
-//! The goal is to count the survivors at the end of the simulation, and observe whether the pandemic
+//! The goal is to count the survivors at the end of the simulation, and sample whether the pandemic
 //! with the given parameters is capable of wiping out the population before disappearing.
 //!
 //! Note that the entities in this example interact with each other.

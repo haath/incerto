@@ -5,9 +5,9 @@ use incerto::prelude::*;
 struct MyCounter(usize);
 
 /// Collect the sum of all counter values.
-impl Observe<usize> for MyCounter
+impl Sample<usize> for MyCounter
 {
-    fn observe(components: &[&Self]) -> usize
+    fn sample(components: &[&Self]) -> usize
     {
         components.iter().map(|c| c.0).sum()
     }
@@ -32,20 +32,20 @@ fn test_counter()
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe::<MyCounter, _>()
+        .sample::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.run_new(NUM_STEPS);
     let counter = simulation
-        .observe::<MyCounter, _>()
+        .sample::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.reset();
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .observe::<MyCounter, _>()
+        .sample::<MyCounter, _>()
         .expect("expect a single counter result");
     assert_eq!(counter, NUM_STEPS);
 }
@@ -74,7 +74,7 @@ fn test_many_counters()
 
     simulation.run(NUM_STEPS);
     let counter_sum = simulation
-        .observe::<MyCounter, _>()
+        .sample::<MyCounter, _>()
         .expect("expect a single counter result");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);

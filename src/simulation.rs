@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{Spawner, error::ObserveError, plugins::StepCounterPlugin, traits::Observe};
+use crate::{Spawner, error::SampleError, plugins::StepCounterPlugin, traits::Sample};
 
 /// Executor of monte carlo experiments.
 ///
@@ -56,35 +56,35 @@ impl Simulation
 
     /// Fetch the value from a multiple entities' components in the simulation.
     ///
-    /// This method uses the [`Observe<O>`] implementation to extract a single value
+    /// This method uses the [`Sample<O>`] implementation to extract a single value
     /// of type `O` from all of the existing components and return it.
     ///
     /// # Errors
     ///
-    /// - [`ObserveError::ComponentMissing`]
-    pub fn observe<CM: Observe<Out>, Out>(&self) -> Result<Out, ObserveError>
+    /// - [`SampleError::ComponentMissing`]
+    pub fn sample<CM: Sample<Out>, Out>(&self) -> Result<Out, SampleError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query::<&CM>()
-            .ok_or(ObserveError::ComponentMissing)?;
+            .ok_or(SampleError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
-        Ok(CM::observe(&results))
+        Ok(CM::sample(&results))
     }
 
     /// Counts the number of components in the simulation.
     ///
     /// # Errors
     ///
-    /// - [`ObserveError::ComponentMissing`]
-    pub fn count<C: Component>(&self) -> Result<usize, ObserveError>
+    /// - [`SampleError::ComponentMissing`]
+    pub fn count<C: Component>(&self) -> Result<usize, SampleError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query::<&C>()
-            .ok_or(ObserveError::ComponentMissing)?;
+            .ok_or(SampleError::ComponentMissing)?;
 
         let count = query.iter(world).count();
 
