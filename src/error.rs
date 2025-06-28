@@ -12,6 +12,16 @@ pub enum SampleError
     /// [`crate::SimulationBuilder::record_time_series_filtered`].
     TimeSeriesNotRecorded,
 }
-
 unsafe impl Send for SampleError {}
 unsafe impl Sync for SampleError {}
+
+/// An error that occured when building a simulation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SimulationBuildError
+{
+    /// The time series for the given pair of component and out types
+    /// has already been set up for recording.
+    TimeSeriesRecordingConflict,
+}
+unsafe impl Send for SimulationBuildError {}
+unsafe impl Sync for SimulationBuildError {}

@@ -5,8 +5,8 @@ use bevy::{
 };
 
 use crate::{
-    Sample,
-    plugins::{StepCounterPlugin, TimeSeriesPlugin},
+    Sample, SimulationBuildError,
+    plugins::{StepCounterPlugin, TimeSeries, TimeSeriesPlugin},
     simulation::Simulation,
     spawner::Spawner,
 };
@@ -107,15 +107,20 @@ impl SimulationBuilder
     /// Note that it is currently not possible to record more than one time series
     /// with the same pair of component (`C`) and value (`O`).
     ///
+    /// # Errors
+    ///
+    /// - [`SimulationBuildError::TimeSeriesRecordingConflict`]
+    ///
     /// # Panics
     ///
     /// This method will panic if:
     ///
     /// - The given `sample_interval` is `0`.
-    /// - Recording a time series has already been started for the same `C` and `O`.
-    #[must_use]
     #[inline]
-    pub fn record_time_series<C, O>(self, sample_interval: usize) -> Self
+    pub fn record_time_series<C, O>(
+        self,
+        sample_interval: usize,
+    ) -> Result<Self, SimulationBuildError>
     where
         C: Sample<O>,
         O: Send + Sync + 'static,
@@ -135,14 +140,19 @@ impl SimulationBuilder
     /// Note that it is currently not possible to record more than one time series
     /// with the same pair of component (`C`) and value (`O`).
     ///
+    /// # Errors
+    ///
+    /// - [`SimulationBuildError::TimeSeriesRecordingConflict`]
+    ///
     /// # Panics
     ///
     /// This method will panic if:
     ///
     /// - The given `sample_interval` is `0`.
-    /// - Recording a time series has already been started for the same `C` and `O`.
-    #[must_use]
-    pub fn record_time_series_filtered<C, F, O>(mut self, sample_interval: usize) -> Self
+    pub fn record_time_series_filtered<C, F, O>(
+        mut self,
+        sample_interval: usize,
+    ) -> Result<Self, SimulationBuildError>
     where
         C: Sample<O>,
         F: QueryFilter + Send + Sync + 'static,
@@ -150,10 +160,16 @@ impl SimulationBuilder
     {
         assert!(sample_interval > 0);
 
+        let world = self.sim.app.world();
+        if world.get_resource::<TimeSeries<C, O>>().is_some()
+        {
+            return Err(SimulationBuildError::TimeSeriesRecordingConflict);
+        }
+
         self.sim
             .app
             .add_plugins(TimeSeriesPlugin::<C, F, O>::new(sample_interval));
-        self
+        Ok(self)
     }
 
     pub fn build(mut self) -> Simulation

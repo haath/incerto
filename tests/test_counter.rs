@@ -150,7 +150,8 @@ fn test_counter_time_series()
         .add_entity_spawner(|spawner| {
             spawner.spawn(MyCounter(0));
         })
-        .record_time_series::<MyCounter, _>(10);
+        .record_time_series::<MyCounter, _>(10)
+        .expect("error building simulation");
 
     let mut simulation = builder.build();
 
