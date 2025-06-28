@@ -1,3 +1,11 @@
+/// Grouping of all other error types in the crate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SimulationError
+{
+    SampleError(SampleError),
+    BuildError(SimulationBuildError),
+}
+
 /// An error that occured when attempting to sample the value of a component.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SampleError
@@ -12,8 +20,6 @@ pub enum SampleError
     /// [`crate::SimulationBuilder::record_time_series_filtered`].
     TimeSeriesNotRecorded,
 }
-unsafe impl Send for SampleError {}
-unsafe impl Sync for SampleError {}
 
 /// An error that occured when building a simulation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,5 +29,24 @@ pub enum SimulationBuildError
     /// has already been set up for recording.
     TimeSeriesRecordingConflict,
 }
+
+unsafe impl Send for SampleError {}
+unsafe impl Sync for SampleError {}
 unsafe impl Send for SimulationBuildError {}
 unsafe impl Sync for SimulationBuildError {}
+
+impl From<SampleError> for SimulationError
+{
+    fn from(value: SampleError) -> Self
+    {
+        Self::SampleError(value)
+    }
+}
+
+impl From<SimulationBuildError> for SimulationError
+{
+    fn from(value: SimulationBuildError) -> Self
+    {
+        Self::BuildError(value)
+    }
+}

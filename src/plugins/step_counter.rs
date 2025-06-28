@@ -11,9 +11,9 @@ impl Plugin for StepCounterPlugin
     {
         Self::init(app);
 
-        // increment the step counter before any other systems in the simulation
+        // increment the step counter after any other systems in the simulation
         // this enables a reliable step number reading in PreUpdate
-        app.add_systems(First, step_counter_increment);
+        app.add_systems(Last, step_counter_increment);
     }
 }
 

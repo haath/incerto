@@ -43,9 +43,9 @@ where
 
     fn time_series_reset(mut time_series: ResMut<TimeSeries<C, O>>, step_counter: Res<StepCounter>)
     {
-        // reset the time series data whenever the step counter is 1
+        // reset the time series data whenever the step counter is 0
         // this should occur on the first step of every simulation
-        if **step_counter == 1
+        if **step_counter == 0
         {
             time_series.values.clear();
         }
@@ -58,7 +58,7 @@ where
     )
     {
         // only get new samples once every 'sample_interval' steps
-        if **step_counter % time_series.sample_interval != 1
+        if **step_counter % time_series.sample_interval != 0
         {
             return;
         }

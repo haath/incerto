@@ -4,6 +4,8 @@
 
 Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
+[![](assets/trader_net_worths.png)](examples/traders.rs)
+
 
 ## Installation
 
