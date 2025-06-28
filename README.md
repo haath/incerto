@@ -44,7 +44,7 @@ let simulation: Simulation = SimulationBuilder::new()
                                 .build();
 ```
 
-It is recommended to start with the [examples](examples/coin_toss.rs).
+It is recommended to start with the [examples](examples/).
 
 
 #### Define components

@@ -40,8 +40,8 @@ impl Sample<f64> for CoinTosser
         let odds_sum = components
             .iter()
             .map(|coin_tosser|
-            // compute the odds of heads
-            (coin_tosser.num_heads as f64) / (coin_tosser.num_tosses as f64))
+                // compute the odds of heads
+                (coin_tosser.num_heads as f64) / (coin_tosser.num_tosses as f64))
             .sum::<f64>();
 
         odds_sum / (components.len() as f64)
