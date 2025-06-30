@@ -5,11 +5,12 @@ use bevy::{ecs::query::QueryFilter, prelude::*};
 use crate::{Sample, plugins::step_counter::StepCounter};
 
 #[derive(Resource, Default)]
-pub struct TimeSeries<C, O>
+pub struct TimeSeries<C, F, O>
 {
     pub(crate) values: Vec<O>,
     sample_interval: usize,
     _pd_c: PhantomData<C>,
+    _pd_f: PhantomData<F>,
 }
 
 #[derive(Default)]
@@ -41,7 +42,10 @@ where
         }
     }
 
-    fn time_series_reset(mut time_series: ResMut<TimeSeries<C, O>>, step_counter: Res<StepCounter>)
+    fn time_series_reset(
+        mut time_series: ResMut<TimeSeries<C, F, O>>,
+        step_counter: Res<StepCounter>,
+    )
     {
         // reset the time series data whenever the step counter is 0
         // this should occur on the first step of every simulation
@@ -52,7 +56,7 @@ where
     }
 
     fn time_series_sample(
-        mut time_series: ResMut<TimeSeries<C, O>>,
+        mut time_series: ResMut<TimeSeries<C, F, O>>,
         step_counter: Res<StepCounter>,
         query: Query<&C, F>,
     )
@@ -83,6 +87,7 @@ where
             values: Vec::<O>::new(),
             sample_interval: self.sample_interval,
             _pd_c: PhantomData::<C>,
+            _pd_f: PhantomData::<F>,
         });
 
         app.add_systems(PreUpdate, Self::time_series_reset)

@@ -161,8 +161,9 @@ impl SimulationBuilder
         assert!(sample_interval > 0);
 
         let world = self.sim.app.world();
-        if world.get_resource::<TimeSeries<C, O>>().is_some()
+        if world.get_resource::<TimeSeries<C, F, O>>().is_some()
         {
+            // More than one time series recording for the same C, F, O is not possible.
             return Err(SimulationBuildError::TimeSeriesRecordingConflict);
         }
 

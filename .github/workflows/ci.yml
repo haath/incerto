@@ -62,7 +62,7 @@ jobs:
           override: true
 
       - name: Install dependencies
-        run: apt-get update && apt-get install -y libfontconfig libfontconfig1-dev
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig libfontconfig1-dev
 
       - name: Build
         run: cargo build --examples

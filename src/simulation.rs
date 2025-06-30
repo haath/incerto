@@ -123,19 +123,37 @@ impl Simulation
 
     /// Retrieve the values of a time series that was recorded during the simulation.
     ///
-    /// This is possible only after having called [`crate::SimulationBuilder::record_time_series`] or
-    /// [`crate::SimulationBuilder::record_time_series_filtered`] during the construction of the simulation.
+    /// This is possible only after having called [`crate::SimulationBuilder::record_time_series`]
+    /// during the construction of the simulation.
     ///
     /// # Errors
     ///
     /// - [`SampleError::TimeSeriesNotRecorded`]
-    pub fn get_time_series<C: Sample<Out>, Out>(&self) -> Result<Vec<&Out>, SampleError>
+    pub fn get_time_series<C, O>(&self) -> Result<Vec<&O>, SampleError>
     where
-        Out: Send + Sync + 'static,
+        C: Sample<O>,
+        O: Send + Sync + 'static,
+    {
+        self.get_time_series_filtered::<C, (), O>()
+    }
+
+    /// Retrieve the values of a time series that was recorded during the simulation with filtering.
+    ///
+    /// This is possible only after having called [`crate::SimulationBuilder::record_time_series_filtered`]
+    /// during the construction of the simulation.
+    ///
+    /// # Errors
+    ///
+    /// - [`SampleError::TimeSeriesNotRecorded`]
+    pub fn get_time_series_filtered<C, F, O>(&self) -> Result<Vec<&O>, SampleError>
+    where
+        C: Sample<O>,
+        F: QueryFilter + Send + Sync + 'static,
+        O: Send + Sync + 'static,
     {
         let world = self.app.world();
         let time_series = world
-            .get_resource::<TimeSeries<C, Out>>()
+            .get_resource::<TimeSeries<C, F, O>>()
             .ok_or(SampleError::TimeSeriesNotRecorded)?;
 
         let values = time_series.values.iter().by_ref().collect();
