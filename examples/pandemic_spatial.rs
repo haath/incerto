@@ -88,7 +88,7 @@ pub struct Quarantined
 #[derive(Component, Debug, Default)]
 pub struct ContactHistory
 {
-    pub recent_contacts: HashSet<GridPosition>, // Positions visited recently
+    pub recent_contacts: HashSet<GridPosition2D>, // Positions visited recently
 }
 
 /// Pandemic statistics collected during simulation
@@ -163,7 +163,7 @@ fn main()
     );
     println!();
 
-    let bounds = GridBounds::new(0, GRID_SIZE - 1, 0, GRID_SIZE - 1);
+    let bounds = GridBounds2D::new_2d(0, GRID_SIZE - 1, 0, GRID_SIZE - 1);
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
         .add_spatial_grid(bounds)
@@ -273,7 +273,7 @@ fn spawn_population(spawner: &mut Spawner)
     for _ in 0..INITIAL_POPULATION
     {
         // Random position on the grid
-        let position = GridPosition::new(
+        let position = GridPosition2D::new_2d(
             rng.random_range(0..GRID_SIZE),
             rng.random_range(0..GRID_SIZE),
         );
@@ -304,8 +304,8 @@ fn spawn_population(spawner: &mut Spawner)
 
 /// Enhanced movement system with social distancing behavior
 fn people_move_with_social_distancing(
-    mut query: Query<(&mut GridPosition, &Person, Option<&Quarantined>)>,
-    spatial_grid: Res<SpatialGrid>,
+    mut query: Query<(&mut GridPosition2D, &Person, Option<&Quarantined>)>,
+    spatial_grid: Res<SpatialGrid2D>,
 )
 {
     let mut rng = rand::rng();
@@ -326,10 +326,10 @@ fn people_move_with_social_distancing(
 
         // Get potential movement directions
         let directions = [
-            GridPosition::new(position.x, position.y - 1), // up
-            GridPosition::new(position.x - 1, position.y), // left
-            GridPosition::new(position.x + 1, position.y), // right
-            GridPosition::new(position.x, position.y + 1), // down
+            GridPosition2D::new_2d(position.x(), position.y() - 1), // up
+            GridPosition2D::new_2d(position.x() - 1, position.y()), // left
+            GridPosition2D::new_2d(position.x() + 1, position.y()), // right
+            GridPosition2D::new_2d(position.x(), position.y() + 1), // down
         ];
 
         let mut best_moves = Vec::new();
@@ -346,7 +346,8 @@ fn people_move_with_social_distancing(
             // Check if in quarantine zone
             if QUARANTINE_ZONE_ENABLED
             {
-                let quarantine_center = GridPosition::new(QUARANTINE_CENTER_X, QUARANTINE_CENTER_Y);
+                let quarantine_center =
+                    GridPosition2D::new_2d(QUARANTINE_CENTER_X, QUARANTINE_CENTER_Y);
                 if (*new_pos - *quarantine_center).abs().element_sum() as u32 <= QUARANTINE_RADIUS
                 {
                     // Only enter quarantine zone if not practicing social distancing
@@ -420,15 +421,15 @@ fn disease_incubation_progression(mut query: Query<&mut Person>)
 
 /// Advanced spatial disease transmission system using infection radius
 fn spatial_disease_transmission(
-    spatial_grid: Res<SpatialGrid>,
-    mut query: Query<(Entity, &GridPosition, &mut Person), Without<Quarantined>>,
+    spatial_grid: Res<SpatialGrid2D>,
+    mut query: Query<(Entity, &GridPosition2D, &mut Person), Without<Quarantined>>,
 )
 {
     let mut rng = rand::rng();
     let mut new_exposures = Vec::new();
 
     // Collect infectious people first to avoid borrowing conflicts
-    let infectious_people: Vec<(Entity, GridPosition)> = query
+    let infectious_people: Vec<(Entity, GridPosition2D)> = query
         .iter()
         .filter_map(|(entity, pos, person)| {
             if matches!(person.disease_state, DiseaseState::Infectious)
@@ -512,7 +513,7 @@ fn disease_recovery_and_death(mut commands: Commands, mut query: Query<(Entity, 
 }
 
 /// Update contact history for contact tracing
-fn update_contact_history(mut query: Query<(&GridPosition, &mut ContactHistory)>)
+fn update_contact_history(mut query: Query<(&GridPosition2D, &mut ContactHistory)>)
 {
     for (position, mut contact_history) in &mut query
     {
@@ -535,9 +536,9 @@ fn update_contact_history(mut query: Query<(&GridPosition, &mut ContactHistory)>
 /// Process contact tracing when someone becomes infectious
 fn process_contact_tracing(
     mut commands: Commands,
-    spatial_grid: Res<SpatialGrid>,
+    spatial_grid: Res<SpatialGrid2D>,
     query_newly_infectious: Query<
-        (Entity, &GridPosition, &ContactHistory),
+        (Entity, &GridPosition2D, &ContactHistory),
         (With<Person>, Without<Quarantined>),
     >,
     query_potential_contacts: Query<Entity, (With<Person>, Without<Quarantined>)>,

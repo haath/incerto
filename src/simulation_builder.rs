@@ -6,7 +6,10 @@ use bevy::{
 
 use crate::{
     Sample, SimulationBuildError,
-    plugins::{GridBounds, SpatialGridPlugin, StepCounterPlugin, TimeSeries, TimeSeriesPlugin},
+    plugins::{
+        GridBounds2D, GridBounds3D, SpatialGridPlugin2D, SpatialGridPlugin3D, StepCounterPlugin,
+        TimeSeries, TimeSeriesPlugin,
+    },
     simulation::Simulation,
     spawner::Spawner,
 };
@@ -76,26 +79,49 @@ impl SimulationBuilder
         self
     }
 
-    /// Add spatial grid support to the simulation.
+    /// Add 2D spatial grid support to the simulation.
     ///
-    /// This enables efficient spatial queries for entities with `GridPosition` components.
+    /// This enables efficient spatial queries for entities with `GridPosition2D` components.
     /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
     ///
     /// # Example
     /// ```rust
     /// use incerto::prelude::*;
     ///
-    /// let bounds = GridBounds::new(0, 99, 0, 99);
+    /// let bounds = GridBounds2D::new_2d(0, 99, 0, 99);
     /// let simulation = SimulationBuilder::new()
     ///     .add_spatial_grid(bounds)
     ///     .build();
     /// ```
     #[must_use]
-    pub fn add_spatial_grid(mut self, bounds: GridBounds) -> Self
+    pub fn add_spatial_grid(mut self, bounds: GridBounds2D) -> Self
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin::with_bounds(bounds));
+            .add_plugins(SpatialGridPlugin2D::with_bounds(bounds));
+        self
+    }
+
+    /// Add 3D spatial grid support to the simulation.
+    ///
+    /// This enables efficient spatial queries for entities with `GridPosition3D` components.
+    /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
+    ///
+    /// # Example
+    /// ```rust
+    /// use incerto::{SimulationBuilder, plugins::GridBounds3D};
+    ///
+    /// let bounds = GridBounds3D::new_3d(0, 99, 0, 99, 0, 99);
+    /// let simulation = SimulationBuilder::new()
+    ///     .add_spatial_grid_3d(bounds)
+    ///     .build();
+    /// ```
+    #[must_use]
+    pub fn add_spatial_grid_3d(mut self, bounds: GridBounds3D) -> Self
+    {
+        self.sim
+            .app
+            .add_plugins(SpatialGridPlugin3D::with_bounds(bounds));
         self
     }
 
