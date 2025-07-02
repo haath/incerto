@@ -4,6 +4,10 @@ pub use bevy::prelude::{
 };
 
 pub use super::{
-    error::*, simulation::Simulation, simulation_builder::SimulationBuilder, spawner::Spawner,
+    error::*,
+    plugins::{GridBounds, GridPosition, SpatialGrid},
+    simulation::Simulation,
+    simulation_builder::SimulationBuilder,
+    spawner::Spawner,
     traits::*,
 };

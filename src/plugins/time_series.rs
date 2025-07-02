@@ -62,7 +62,7 @@ where
     )
     {
         // only get new samples once every 'sample_interval' steps
-        if **step_counter % time_series.sample_interval != 0
+        if !(**step_counter).is_multiple_of(time_series.sample_interval)
         {
             return;
         }

@@ -10,4 +10,12 @@
     - The most complicated example.
     - Two different kinds of entities interacting with each other.
     - Data is sampled as a time series and plotted.
+- **[forest_fire.rs](forest_fire.rs)**
+    - Spatial cellular automaton simulation.
+    - Demonstrates grid-based entities and neighborhood interactions.
+    - Shows probabilistic fire spread with time series analysis.
+- **[pandemic_spatial.rs](pandemic_spatial.rs)**
+    - Advanced epidemic simulation with spatial features.
+    - Infection radius, social distancing, contact tracing, and quarantine zones.
+    - Demonstrates realistic epidemic modeling with spatial grid optimization.
 
