@@ -42,7 +42,7 @@ const TRADER_CHANCE_SELL_STOCK: f64 = 0.005;
 const TRADER_BUY_NUM_SHARES: RangeInclusive<usize> = 1..=5;
 
 const STOCK_INITIAL_PRICE: f64 = 5.0;
-const STOCK_PRICE_CHANGE_MEAN: f64 = 0.001; // small positive bias due to inlation
+const STOCK_PRICE_CHANGE_MEAN: f64 = 0.001; // small positive bias due to inflation
 const STOCK_PRICE_CHANGE_STD_DEV: f64 = 0.2;
 
 const PLOT_STORE_PATH: &str = "images/trader_net_worths.png";
@@ -66,11 +66,17 @@ struct Trader
     portfolio: HashMap<StockId, usize>, // #shares owned of each stock
 }
 
+/// A trader's actual networth requires knowing their portfolio, as well as the prices for all
+/// the stocks that they own.
+/// So to make it easier to [`Sample`] the net worth we create this auxiliary component which
+/// will carry each trader's net worth computed each step using a system.
 #[derive(Debug, Component)]
 struct TraderNetWorth(TraderId, f64);
 
 impl Sample<HashMap<TraderId, f64>> for TraderNetWorth
 {
+    /// Collect the net worth values from all traders into a hash map,
+    /// mapping each trader id to his corresponding net worth.
     fn sample(components: &[&Self]) -> HashMap<TraderId, f64>
     {
         components.iter().map(|c| (c.0, c.1)).collect()
@@ -124,12 +130,15 @@ fn spawn_stocks(spawner: &mut Spawner)
     }
 }
 
+/// During each step, the prices of all stocks move by a random amount.
 fn stocks_price_change(
     mut commands: Commands,
     mut query: Query<(Entity, &mut StockPrice), Without<StockDelisted>>,
 )
 {
     let mut rng = rand::rng();
+
+    // sample the deltas from a normal distribution
     let price_change_distribution =
         Normal::new(STOCK_PRICE_CHANGE_MEAN, STOCK_PRICE_CHANGE_STD_DEV).unwrap();
 
@@ -141,6 +150,7 @@ fn stocks_price_change(
 
         if stock_price.0 < f64::EPSILON
         {
+            // a stock is delisted permanently if its price hits zero
             commands.entity(stock).insert(StockDelisted);
         }
     }
@@ -157,8 +167,8 @@ fn traders_may_buy_shares(
     {
         for (stock_id, stock_price) in &query_stocks
         {
-            let already_owned = trader.portfolio.contains_key(stock_id);
             let price = stock_price.0;
+            let already_owned = trader.portfolio.contains_key(stock_id);
             let decides_to_buy = rng.random_bool(TRADER_CHANCE_BUY_STOCK);
 
             if !already_owned && decides_to_buy
@@ -195,8 +205,8 @@ fn traders_may_sell_shares(
 
     for mut trader in &mut query
     {
+        // go through all owned stocks and decide randomly which ones to sell
         let mut to_sell = Vec::new();
-
         for (stock_id, num_shares) in &trader.portfolio
         {
             let decides_to_sell = rng.random_bool(TRADER_CHANCE_SELL_STOCK);
@@ -207,6 +217,8 @@ fn traders_may_sell_shares(
             }
         }
 
+        // sell them by removing them from the portfolio and incrementing the cash
+        // by the sale amount
         for (stock_id, num_shares) in to_sell
         {
             trader.portfolio.remove(&stock_id);
@@ -217,6 +229,7 @@ fn traders_may_sell_shares(
     }
 }
 
+/// Computes each trader's net worth and stores in the auxiliary [`TraderNetWorth`] component.
 fn traders_calculate_net_worth(
     mut query: Query<(&Trader, &mut TraderNetWorth)>,
     query_stocks: Query<(&StockId, &StockPrice)>,

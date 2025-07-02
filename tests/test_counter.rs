@@ -165,4 +165,29 @@ fn test_counter_time_series()
         .collect::<Vec<_>>();
 
     assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+
+    // run for 10 more steps, check that the next value is sampled into the continuing series
+    simulation.run(10);
+
+    let values = simulation
+        .get_time_series::<MyCounter, _>()
+        .expect("time series not recorded")
+        .into_iter()
+        .copied()
+        .collect::<Vec<_>>();
+
+    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101]);
+
+    // run it again from the beginning
+    // verify that the time series also starts anew
+    simulation.run_new(NUM_STEPS);
+
+    let values = simulation
+        .get_time_series::<MyCounter, _>()
+        .expect("time series not recorded")
+        .into_iter()
+        .copied()
+        .collect::<Vec<_>>();
+
+    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
 }

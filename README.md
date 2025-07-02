@@ -11,9 +11,12 @@ Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
 The crate can be installed from [crates.io](https://crates.io/crates/incerto).
 Currently the only dependency is [bevy@0.16](https://github.com/bevyengine/bevy), and there are no cargo features.
+Due to an [issue](https://github.com/rust-lang/docs.rs/issues/1588#issuecomment-1008292478) with macro crate linking, it is necessary to explicitly add bevy as a dependency as well.
 
-```sh
-cargo add incerto
+```toml
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+incerto = "*"
 ```
 
 
