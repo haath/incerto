@@ -3,19 +3,16 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 /// Component representing a position in the spatial grid.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GridPosition
-{
-    pub x: i32,
-    pub y: i32,
-}
+/// Built on top of Bevy's `IVec2` for compatibility with the Bevy ecosystem.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+pub struct GridPosition(IVec2);
 
 impl GridPosition
 {
     #[must_use]
     pub const fn new(x: i32, y: i32) -> Self
     {
-        Self { x, y }
+        Self(IVec2::new(x, y))
     }
 
     /// Get the 8 neighboring positions (Moore neighborhood).
@@ -23,14 +20,14 @@ impl GridPosition
     pub const fn neighbors(&self) -> [Self; 8]
     {
         [
-            Self::new(self.x - 1, self.y - 1), // top-left
-            Self::new(self.x, self.y - 1),     // top
-            Self::new(self.x + 1, self.y - 1), // top-right
-            Self::new(self.x - 1, self.y),     // left
-            Self::new(self.x + 1, self.y),     // right
-            Self::new(self.x - 1, self.y + 1), // bottom-left
-            Self::new(self.x, self.y + 1),     // bottom
-            Self::new(self.x + 1, self.y + 1), // bottom-right
+            Self(IVec2::new(self.0.x - 1, self.0.y - 1)), // top-left
+            Self(IVec2::new(self.0.x, self.0.y - 1)),     // top
+            Self(IVec2::new(self.0.x + 1, self.0.y - 1)), // top-right
+            Self(IVec2::new(self.0.x - 1, self.0.y)),     // left
+            Self(IVec2::new(self.0.x + 1, self.0.y)),     // right
+            Self(IVec2::new(self.0.x - 1, self.0.y + 1)), // bottom-left
+            Self(IVec2::new(self.0.x, self.0.y + 1)),     // bottom
+            Self(IVec2::new(self.0.x + 1, self.0.y + 1)), // bottom-right
         ]
     }
 
@@ -39,29 +36,29 @@ impl GridPosition
     pub const fn orthogonal_neighbors(&self) -> [Self; 4]
     {
         [
-            Self::new(self.x, self.y - 1), // top
-            Self::new(self.x - 1, self.y), // left
-            Self::new(self.x + 1, self.y), // right
-            Self::new(self.x, self.y + 1), // bottom
+            Self(IVec2::new(self.0.x, self.0.y - 1)), // top
+            Self(IVec2::new(self.0.x - 1, self.0.y)), // left
+            Self(IVec2::new(self.0.x + 1, self.0.y)), // right
+            Self(IVec2::new(self.0.x, self.0.y + 1)), // bottom
         ]
     }
 
     /// Calculate Manhattan distance to another position.
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
     pub const fn manhattan_distance(&self, other: &Self) -> u32
     {
-        ((self.x - other.x).abs() + (self.y - other.y).abs()) as u32
+        let dx = (self.0.x - other.0.x).unsigned_abs();
+        let dy = (self.0.y - other.0.y).unsigned_abs();
+        dx + dy
     }
 
     /// Calculate Euclidean distance squared to another position.
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
     pub const fn distance_squared(&self, other: &Self) -> u32
     {
-        let dx = self.x - other.x;
-        let dy = self.y - other.y;
-        (dx * dx + dy * dy) as u32
+        let dx = (self.0.x - other.0.x).unsigned_abs();
+        let dy = (self.0.y - other.0.y).unsigned_abs();
+        dx * dx + dy * dy
     }
 }
 
@@ -77,52 +74,92 @@ pub struct SpatialGrid
     bounds: Option<GridBounds>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GridBounds
-{
-    pub min_x: i32,
-    pub max_x: i32,
-    pub min_y: i32,
-    pub max_y: i32,
-}
+/// Grid bounds representing the valid area for grid positions.
+///
+/// Built on top of Bevy's `IRect` for compatibility, but maintains grid-specific semantics
+/// where width/height represent cell counts rather than geometric dimensions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deref, DerefMut)]
+pub struct GridBounds(IRect);
 
 impl GridBounds
 {
     #[must_use]
-    pub const fn new(min_x: i32, max_x: i32, min_y: i32, max_y: i32) -> Self
+    pub fn new(min_x: i32, max_x: i32, min_y: i32, max_y: i32) -> Self
     {
-        Self {
-            min_x,
-            max_x,
-            min_y,
-            max_y,
-        }
+        Self(IRect::new(min_x, min_y, max_x, max_y))
     }
 
     #[must_use]
-    pub const fn contains(&self, pos: &GridPosition) -> bool
+    pub fn contains(&self, pos: &GridPosition) -> bool
     {
-        pos.x >= self.min_x && pos.x <= self.max_x && pos.y >= self.min_y && pos.y <= self.max_y
+        self.0.contains(pos.0)
     }
 
+    /// Get the width in grid cells (number of columns).
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
-    pub const fn width(&self) -> u32
+    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
+    pub fn width(&self) -> u32
     {
-        (self.max_x - self.min_x + 1) as u32
+        (self.0.width() + 1) as u32
     }
 
+    /// Get the height in grid cells (number of rows).
     #[must_use]
-    #[allow(clippy::cast_sign_loss)]
-    pub const fn height(&self) -> u32
+    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
+    pub fn height(&self) -> u32
     {
-        (self.max_y - self.min_y + 1) as u32
+        (self.0.height() + 1) as u32
     }
 
+    /// Get the total number of grid cells.
     #[must_use]
-    pub const fn total_cells(&self) -> u32
+    pub fn total_cells(&self) -> u32
     {
         self.width() * self.height()
+    }
+
+    /// Get the minimum x coordinate.
+    #[must_use]
+    pub const fn min_x(&self) -> i32
+    {
+        self.0.min.x
+    }
+
+    /// Get the maximum x coordinate.
+    #[must_use]
+    pub const fn max_x(&self) -> i32
+    {
+        self.0.max.x
+    }
+
+    /// Get the minimum y coordinate.
+    #[must_use]
+    pub const fn min_y(&self) -> i32
+    {
+        self.0.min.y
+    }
+
+    /// Get the maximum y coordinate.
+    #[must_use]
+    pub const fn max_y(&self) -> i32
+    {
+        self.0.max.y
+    }
+}
+
+impl From<IRect> for GridBounds
+{
+    fn from(rect: IRect) -> Self
+    {
+        Self(rect)
+    }
+}
+
+impl From<GridBounds> for IRect
+{
+    fn from(bounds: GridBounds) -> Self
+    {
+        bounds.0
     }
 }
 
@@ -338,12 +375,16 @@ impl Plugin for SpatialGridPlugin
     }
 }
 
+/// Query for entities with `GridPosition` components that have been added or changed.
+type GridPositionQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (Entity, &'static GridPosition),
+    Or<(Added<GridPosition>, Changed<GridPosition>)>,
+>;
+
 /// System that updates the spatial grid when entities with `GridPosition` are added or moved.
-#[allow(clippy::type_complexity)]
-pub fn spatial_grid_update_system(
-    mut spatial_grid: ResMut<SpatialGrid>,
-    query: Query<(Entity, &GridPosition), Or<(Added<GridPosition>, Changed<GridPosition>)>>,
-)
+pub fn spatial_grid_update_system(mut spatial_grid: ResMut<SpatialGrid>, query: GridPositionQuery)
 {
     for (entity, position) in &query
     {
