@@ -99,17 +99,16 @@ pub struct PandemicStats
     pub exposed_count: usize,
     pub infectious_count: usize,
     pub recovered_count: usize,
-    pub quarantined_count: usize,
     pub dead_count: usize,
     pub total_population: usize,
-    pub avg_population_density: f64,
-    pub superspreader_locations: usize, // Locations with >threshold infections
 }
 
 impl Sample<PandemicStats> for Person
 {
     fn sample(components: &[&Self]) -> PandemicStats
     {
+        assert!(!components.is_empty());
+
         let mut healthy_count = 0;
         let mut exposed_count = 0;
         let mut infectious_count = 0;
@@ -131,11 +130,8 @@ impl Sample<PandemicStats> for Person
             exposed_count,
             infectious_count,
             recovered_count,
-            quarantined_count: 0, // Will be updated by separate query
             dead_count: INITIAL_POPULATION - components.len(),
             total_population: components.len(),
-            avg_population_density: 0.0, // Will be calculated separately
-            superspreader_locations: 0,
         }
     }
 }
@@ -351,7 +347,7 @@ fn people_move_with_social_distancing(
             if QUARANTINE_ZONE_ENABLED
             {
                 let quarantine_center = GridPosition::new(QUARANTINE_CENTER_X, QUARANTINE_CENTER_Y);
-                if new_pos.manhattan_distance(&quarantine_center) <= QUARANTINE_RADIUS
+                if (*new_pos - *quarantine_center).abs().element_sum() as u32 <= QUARANTINE_RADIUS
                 {
                     // Only enter quarantine zone if not practicing social distancing
                     if person.social_distancing
@@ -362,7 +358,7 @@ fn people_move_with_social_distancing(
             }
 
             // Count people at potential destination for social distancing
-            let people_at_destination = spatial_grid.entities_at(&new_pos).len();
+            let people_at_destination = spatial_grid.entities_at(&new_pos).count();
 
             if person.social_distancing && SOCIAL_DISTANCING_ENABLED
             {
@@ -391,7 +387,7 @@ fn people_move_with_social_distancing(
             let chosen_move = best_moves.choose(&mut rng).copied().unwrap();
 
             // Only move if it's not too crowded (even for non-social-distancing people)
-            let people_at_destination = spatial_grid.entities_at(&chosen_move).len();
+            let people_at_destination = spatial_grid.entities_at(&chosen_move).count();
             if people_at_destination < CROWDING_THRESHOLD
             {
                 *position = chosen_move;
@@ -425,48 +421,57 @@ fn disease_incubation_progression(mut query: Query<&mut Person>)
 /// Advanced spatial disease transmission system using infection radius
 fn spatial_disease_transmission(
     spatial_grid: Res<SpatialGrid>,
-    query_infectious: Query<(Entity, &GridPosition), (With<Person>, Without<Quarantined>)>,
-    mut query_susceptible: Query<(Entity, &GridPosition, &mut Person), Without<Quarantined>>,
+    mut query: Query<(Entity, &GridPosition, &mut Person), Without<Quarantined>>,
 )
 {
     let mut rng = rand::rng();
     let mut new_exposures = Vec::new();
 
-    for (infectious_entity, infectious_pos) in &query_infectious
-    {
-        // Check if this person is actually infectious
-        if let Ok((_, _, person)) = query_susceptible.get(infectious_entity)
-            && matches!(person.disease_state, DiseaseState::Infectious)
-        {
-            // Get all people within infection radius
-            let nearby_entities =
-                spatial_grid.entities_within_distance(infectious_pos, INFECTION_RADIUS);
-
-            for &nearby_entity in &nearby_entities
+    // Collect infectious people first to avoid borrowing conflicts
+    let infectious_people: Vec<(Entity, GridPosition)> = query
+        .iter()
+        .filter_map(|(entity, pos, person)| {
+            if matches!(person.disease_state, DiseaseState::Infectious)
             {
-                if nearby_entity == infectious_entity
-                {
-                    continue; // Don't infect self
-                }
+                Some((entity, *pos))
+            }
+            else
+            {
+                None
+            }
+        })
+        .collect();
 
-                if let Ok((entity, susceptible_pos, person)) = query_susceptible.get(nearby_entity)
+    for (infectious_entity, infectious_pos) in infectious_people
+    {
+        // Get all people within infection radius
+        let nearby_entities =
+            spatial_grid.entities_within_distance(&infectious_pos, INFECTION_RADIUS);
+
+        for nearby_entity in nearby_entities
+        {
+            if nearby_entity == infectious_entity
+            {
+                continue; // Don't infect self
+            }
+
+            if let Ok((entity, susceptible_pos, person)) = query.get(nearby_entity)
+            {
+                // Only infect healthy people
+                if matches!(person.disease_state, DiseaseState::Healthy)
                 {
-                    // Only infect healthy people
-                    if matches!(person.disease_state, DiseaseState::Healthy)
+                    // Calculate infection probability based on distance
+                    let distance = (*infectious_pos - **susceptible_pos).abs().element_sum() as u32;
+                    let infection_chance = match distance
                     {
-                        // Calculate infection probability based on distance
-                        let distance = infectious_pos.manhattan_distance(susceptible_pos);
-                        let infection_chance = match distance
-                        {
-                            0 | 1 => CHANCE_INFECT_AT_DISTANCE_1, // Same cell or adjacent
-                            2 => CHANCE_INFECT_AT_DISTANCE_2,     // 2 cells away
-                            _ => 0.0,                             // Too far
-                        };
+                        0 | 1 => CHANCE_INFECT_AT_DISTANCE_1, // Same cell or adjacent
+                        2 => CHANCE_INFECT_AT_DISTANCE_2,     // 2 cells away
+                        _ => 0.0,                             // Too far
+                    };
 
-                        if rng.random_bool(infection_chance)
-                        {
-                            new_exposures.push(entity);
-                        }
+                    if rng.random_bool(infection_chance)
+                    {
+                        new_exposures.push(entity);
                     }
                 }
             }
@@ -476,12 +481,10 @@ fn spatial_disease_transmission(
     // Apply new exposures
     for entity in new_exposures
     {
-        if let Ok((_, _, mut person)) = query_susceptible.get_mut(entity)
-        {
-            person.disease_state = DiseaseState::Exposed {
-                incubation_remaining: INCUBATION_PERIOD,
-            };
-        }
+        let (_, _, mut person) = query.get_mut(entity).expect("Entity should exist");
+        person.disease_state = DiseaseState::Exposed {
+            incubation_remaining: INCUBATION_PERIOD,
+        };
     }
 }
 
@@ -555,7 +558,7 @@ fn process_contact_tracing(
         {
             let people_at_location = spatial_grid.entities_at(&contact_location);
 
-            for &potential_contact in people_at_location
+            for potential_contact in people_at_location
             {
                 if potential_contact == infectious_entity
                 {
