@@ -16,7 +16,7 @@
 pub mod prelude;
 
 mod error;
-mod plugins;
+pub mod plugins;
 mod simulation;
 mod simulation_builder;
 mod spawner;

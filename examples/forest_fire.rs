@@ -3,7 +3,7 @@
 //! This example showcases a spatial cellular automaton simulation where fire spreads
 //! through a forest based on probabilistic rules. The simulation demonstrates:
 //!
-//! * Spatial grid-based entities using the `SpatialGridPlugin`
+//! * Spatial grid-based entities using the `SpatialGrid2DPlugin`
 //! * Entity state transitions (Healthy → Burning → Burned → Empty)
 //! * Neighborhood interactions for fire spreading
 //! * Time series collection of fire statistics
@@ -148,7 +148,7 @@ fn main()
     println!();
 
     // Build the simulation
-    let bounds = GridBounds::new(0, GRID_WIDTH - 1, 0, GRID_HEIGHT - 1);
+    let bounds = GridBounds2D::new_2d(0, GRID_WIDTH - 1, 0, GRID_HEIGHT - 1);
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
         .add_spatial_grid(bounds)
@@ -233,7 +233,7 @@ fn spawn_forest_grid(spawner: &mut Spawner)
     {
         for y in 0..GRID_HEIGHT
         {
-            let position = GridPosition::new(x, y);
+            let position = GridPosition2D::new_2d(x, y);
 
             // Determine initial state
             let state = if rng.random_bool(INITIAL_FOREST_DENSITY)
@@ -251,8 +251,8 @@ fn spawn_forest_grid(spawner: &mut Spawner)
     }
 
     // Start some initial fires at random locations
-    let healthy_positions: Vec<GridPosition> = (0..GRID_WIDTH)
-        .flat_map(|x| (0..GRID_HEIGHT).map(move |y| GridPosition::new(x, y)))
+    let healthy_positions: Vec<GridPosition2D> = (0..GRID_WIDTH)
+        .flat_map(|x| (0..GRID_HEIGHT).map(move |y| GridPosition2D::new_2d(x, y)))
         .collect();
 
     // This is a simplified approach - in a real implementation you'd query existing entities
@@ -271,11 +271,11 @@ fn spawn_forest_grid(spawner: &mut Spawner)
     }
 }
 
-/// System that handles fire spreading to neighboring cells using `SpatialGrid`.
+/// System that handles fire spreading to neighboring cells using `SpatialGrid2D`.
 fn fire_spread_system(
-    spatial_grid: Res<SpatialGrid>,
-    query_burning: Query<(Entity, &GridPosition), With<ForestCell>>,
-    mut query_cells: Query<(&GridPosition, &mut ForestCell)>,
+    spatial_grid: Res<SpatialGrid2D>,
+    query_burning: Query<(Entity, &GridPosition2D), With<ForestCell>>,
+    mut query_cells: Query<(&GridPosition2D, &mut ForestCell)>,
 )
 {
     let mut rng = rand::rng();
@@ -288,7 +288,7 @@ fn fire_spread_system(
         if let Ok((_, cell)) = query_cells.get(burning_entity)
             && matches!(cell.state, CellState::Burning { .. })
         {
-            // Get orthogonal neighbors using SpatialGrid
+            // Get orthogonal neighbors using SpatialGrid2D
             let neighbors = spatial_grid.orthogonal_neighbors_of(burning_pos);
 
             for neighbor_entity in neighbors

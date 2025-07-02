@@ -32,6 +32,7 @@ where
     O: Send + Sync + 'static,
     F: QueryFilter + Send + Sync + 'static,
 {
+    #[must_use]
     pub const fn new(sample_interval: usize) -> Self
     {
         Self {
