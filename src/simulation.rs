@@ -7,6 +7,8 @@ use crate::{
     traits::Sample,
 };
 
+type SpawnFn = Box<dyn Fn(&mut Spawner)>;
+
 /// Executor of monte carlo experiments.
 ///
 /// Constructed using [`super::SimulationBuilder`].
@@ -17,7 +19,7 @@ use crate::{
 pub struct Simulation
 {
     pub(super) app: App,
-    pub(super) spawners: Vec<fn(&mut Spawner)>,
+    pub(super) spawners: Vec<SpawnFn>,
 }
 
 impl Simulation

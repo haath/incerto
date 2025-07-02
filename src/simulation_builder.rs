@@ -89,9 +89,9 @@ impl SimulationBuilder
     /// Spawners shall be used to set up the initial state of a simulation.
     /// Additional entities can be spawned in an ongoing simulation using [Commands](https://bevy-cheatbook.github.io/programming/commands.html).
     #[must_use]
-    pub fn add_entity_spawner(mut self, entity_spawner: fn(&mut Spawner)) -> Self
+    pub fn add_entity_spawner(mut self, entity_spawner: impl Fn(&mut Spawner) + 'static) -> Self
     {
-        self.sim.spawners.push(entity_spawner);
+        self.sim.spawners.push(Box::new(entity_spawner));
         self
     }
 
