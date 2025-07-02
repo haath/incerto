@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use bevy::prelude::*;
+use bevy::{ecs::entity::EntityHashMap, platform::collections::HashMap, prelude::*};
 
 /// Component representing a position in the spatial grid.
 /// Built on top of Bevy's `IVec2` for compatibility with the Bevy ecosystem.
@@ -68,8 +66,8 @@ pub struct SpatialGrid
 {
     /// Maps grid positions to entities at those positions.
     position_to_entities: HashMap<GridPosition, Vec<Entity>>,
-    /// Maps entities to their grid positions for fast lookups.
-    entity_to_position: HashMap<Entity, GridPosition>,
+    /// Maps entities to their grid positions for fast lookups (optimized for Entity keys).
+    entity_to_position: EntityHashMap<GridPosition>,
     /// Grid bounds for validation and iteration.
     bounds: Option<GridBounds>,
 }
@@ -176,7 +174,7 @@ impl SpatialGrid
     {
         Self {
             position_to_entities: HashMap::new(),
-            entity_to_position: HashMap::new(),
+            entity_to_position: EntityHashMap::default(),
             bounds: Some(bounds),
         }
     }
