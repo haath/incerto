@@ -37,8 +37,6 @@ In-depth knowledge of Bevy's internals is not required however, since we have ab
 use incerto::prelude::*;
 
 let simulation: Simulation = SimulationBuilder::new()
-                                // add resources if needed
-                                .insert_resource(...)
                                 // add one or more entity spawners
                                 .add_entity_spawner(...)
                                 .add_entity_spawner(...)

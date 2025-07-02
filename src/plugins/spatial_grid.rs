@@ -1,62 +1,77 @@
-use bevy::{ecs::entity::EntityHashMap, platform::collections::HashMap, prelude::*};
+use bevy::{
+    ecs::entity::EntityHashMap,
+    platform::collections::{HashMap, HashSet},
+    prelude::*,
+};
 
 /// Component representing a position in the spatial grid.
 /// Built on top of Bevy's `IVec2` for compatibility with the Bevy ecosystem.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
-pub struct GridPosition(IVec2);
+pub struct GridPosition(pub IVec2);
 
 impl GridPosition
 {
+    // Direction constants for cleaner neighbor calculations
+    const NORTH: IVec2 = IVec2::new(0, -1);
+    const SOUTH: IVec2 = IVec2::new(0, 1);
+    const EAST: IVec2 = IVec2::new(1, 0);
+    const WEST: IVec2 = IVec2::new(-1, 0);
+    const NORTH_EAST: IVec2 = IVec2::new(1, -1);
+    const NORTH_WEST: IVec2 = IVec2::new(-1, -1);
+    const SOUTH_EAST: IVec2 = IVec2::new(1, 1);
+    const SOUTH_WEST: IVec2 = IVec2::new(-1, 1);
+
+    /// Create a new grid position from x, y coordinates.
     #[must_use]
     pub const fn new(x: i32, y: i32) -> Self
     {
         Self(IVec2::new(x, y))
     }
 
-    /// Get the 8 neighboring positions (Moore neighborhood).
+    /// Get the x coordinate.
     #[must_use]
-    pub const fn neighbors(&self) -> [Self; 8]
+    pub const fn x(&self) -> i32
     {
-        [
-            Self(IVec2::new(self.0.x - 1, self.0.y - 1)), // top-left
-            Self(IVec2::new(self.0.x, self.0.y - 1)),     // top
-            Self(IVec2::new(self.0.x + 1, self.0.y - 1)), // top-right
-            Self(IVec2::new(self.0.x - 1, self.0.y)),     // left
-            Self(IVec2::new(self.0.x + 1, self.0.y)),     // right
-            Self(IVec2::new(self.0.x - 1, self.0.y + 1)), // bottom-left
-            Self(IVec2::new(self.0.x, self.0.y + 1)),     // bottom
-            Self(IVec2::new(self.0.x + 1, self.0.y + 1)), // bottom-right
-        ]
+        self.0.x
     }
 
-    /// Get the 4 orthogonal neighboring positions (Von Neumann neighborhood).
+    /// Get the y coordinate.
     #[must_use]
-    pub const fn orthogonal_neighbors(&self) -> [Self; 4]
+    pub const fn y(&self) -> i32
     {
-        [
-            Self(IVec2::new(self.0.x, self.0.y - 1)), // top
-            Self(IVec2::new(self.0.x - 1, self.0.y)), // left
-            Self(IVec2::new(self.0.x + 1, self.0.y)), // right
-            Self(IVec2::new(self.0.x, self.0.y + 1)), // bottom
-        ]
+        self.0.y
     }
 
-    /// Calculate Manhattan distance to another position.
+    /// Get all neighboring positions (Moore neighborhood).
     #[must_use]
-    pub const fn manhattan_distance(&self, other: &Self) -> u32
+    pub fn neighbors(&self) -> impl Iterator<Item = Self>
     {
-        let dx = (self.0.x - other.0.x).unsigned_abs();
-        let dy = (self.0.y - other.0.y).unsigned_abs();
-        dx + dy
+        const DIRECTIONS: [IVec2; 8] = [
+            GridPosition::NORTH_WEST,
+            GridPosition::NORTH,
+            GridPosition::NORTH_EAST,
+            GridPosition::WEST,
+            GridPosition::EAST,
+            GridPosition::SOUTH_WEST,
+            GridPosition::SOUTH,
+            GridPosition::SOUTH_EAST,
+        ];
+        let base = self.0;
+        DIRECTIONS.into_iter().map(move |dir| Self(base + dir))
     }
 
-    /// Calculate Euclidean distance squared to another position.
+    /// Get orthogonal neighboring positions (Von Neumann neighborhood).
     #[must_use]
-    pub const fn distance_squared(&self, other: &Self) -> u32
+    pub fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
     {
-        let dx = (self.0.x - other.0.x).unsigned_abs();
-        let dy = (self.0.y - other.0.y).unsigned_abs();
-        dx * dx + dy * dy
+        const DIRECTIONS: [IVec2; 4] = [
+            GridPosition::NORTH,
+            GridPosition::WEST,
+            GridPosition::EAST,
+            GridPosition::SOUTH,
+        ];
+        let base = self.0;
+        DIRECTIONS.into_iter().map(move |dir| Self(base + dir))
     }
 }
 
@@ -65,7 +80,7 @@ impl GridPosition
 pub struct SpatialGrid
 {
     /// Maps grid positions to entities at those positions.
-    position_to_entities: HashMap<GridPosition, Vec<Entity>>,
+    position_to_entities: HashMap<GridPosition, HashSet<Entity>>,
     /// Maps entities to their grid positions for fast lookups (optimized for Entity keys).
     entity_to_position: EntityHashMap<GridPosition>,
     /// Grid bounds for validation and iteration.
@@ -173,9 +188,8 @@ impl SpatialGrid
     pub fn with_bounds(bounds: GridBounds) -> Self
     {
         Self {
-            position_to_entities: HashMap::new(),
-            entity_to_position: EntityHashMap::default(),
             bounds: Some(bounds),
+            ..default()
         }
     }
 
@@ -191,47 +205,47 @@ impl SpatialGrid
     }
 
     /// Add an entity at a specific grid position.
-    pub fn insert(&mut self, entity: Entity, position: GridPosition)
+    fn insert(&mut self, entity: Entity, position: GridPosition)
     {
         // Remove entity from old position if it exists
-        if let Some(old_pos) = self.entity_to_position.get(&entity)
-            && let Some(entities) = self.position_to_entities.get_mut(old_pos)
-        {
-            entities.retain(|&e| e != entity);
-            if entities.is_empty()
-            {
-                self.position_to_entities.remove(old_pos);
-            }
-        }
+        self.remove(entity);
 
         // Insert at new position
         self.position_to_entities
             .entry(position)
             .or_default()
-            .push(entity);
+            .insert(entity);
         self.entity_to_position.insert(entity, position);
     }
 
     /// Remove an entity from the spatial index.
-    pub fn remove(&mut self, entity: Entity)
+    ///
+    /// Returns the position where the entity was located, if it was found.
+    fn remove(&mut self, entity: Entity) -> Option<GridPosition>
     {
         if let Some(position) = self.entity_to_position.remove(&entity)
             && let Some(entities) = self.position_to_entities.get_mut(&position)
         {
-            entities.retain(|&e| e != entity);
+            entities.remove(&entity);
             if entities.is_empty()
             {
                 self.position_to_entities.remove(&position);
             }
+            Some(position)
+        }
+        else
+        {
+            None
         }
     }
 
     /// Get all entities at a specific position.
-    pub fn entities_at(&self, position: &GridPosition) -> &[Entity]
+    pub fn entities_at(&self, position: &GridPosition) -> impl Iterator<Item = Entity> + '_
     {
         self.position_to_entities
             .get(position)
-            .map_or(&[], Vec::as_slice)
+            .into_iter()
+            .flat_map(|set| set.iter().copied())
     }
 
     /// Get the position of an entity.
@@ -243,36 +257,44 @@ impl SpatialGrid
 
     /// Get all entities in the 8-connected neighborhood of a position.
     #[must_use]
-    pub fn neighbors_of(&self, position: &GridPosition) -> Vec<Entity>
+    pub fn neighbors_of<'a>(
+        &'a self,
+        position: &'a GridPosition,
+    ) -> impl Iterator<Item = Entity> + 'a
     {
-        let mut neighbors = Vec::new();
-        for neighbor_pos in position.neighbors()
-        {
-            if let Some(bounds) = self.bounds
-                && !bounds.contains(&neighbor_pos)
-            {
-                continue;
-            }
-            neighbors.extend_from_slice(self.entities_at(&neighbor_pos));
-        }
-        neighbors
+        position
+            .neighbors()
+            .filter(move |neighbor_pos| {
+                self.bounds
+                    .map_or(true, |bounds| bounds.contains(neighbor_pos))
+            })
+            .flat_map(move |neighbor_pos| {
+                self.position_to_entities
+                    .get(&neighbor_pos)
+                    .into_iter()
+                    .flat_map(|set| set.iter().copied())
+            })
     }
 
     /// Get all entities in the 4-connected orthogonal neighborhood of a position.
     #[must_use]
-    pub fn orthogonal_neighbors_of(&self, position: &GridPosition) -> Vec<Entity>
+    pub fn orthogonal_neighbors_of<'a>(
+        &'a self,
+        position: &'a GridPosition,
+    ) -> impl Iterator<Item = Entity> + 'a
     {
-        let mut neighbors = Vec::new();
-        for neighbor_pos in position.orthogonal_neighbors()
-        {
-            if let Some(bounds) = self.bounds
-                && !bounds.contains(&neighbor_pos)
-            {
-                continue;
-            }
-            neighbors.extend_from_slice(self.entities_at(&neighbor_pos));
-        }
-        neighbors
+        position
+            .neighbors_orthogonal()
+            .filter(move |neighbor_pos| {
+                self.bounds
+                    .map_or(true, |bounds| bounds.contains(neighbor_pos))
+            })
+            .flat_map(move |neighbor_pos| {
+                self.position_to_entities
+                    .get(&neighbor_pos)
+                    .into_iter()
+                    .flat_map(|set| set.iter().copied())
+            })
     }
 
     /// Get all entities within a Manhattan distance of a position.
@@ -280,26 +302,18 @@ impl SpatialGrid
     #[allow(clippy::cast_possible_wrap)]
     pub fn entities_within_distance(&self, center: &GridPosition, distance: u32) -> Vec<Entity>
     {
-        let mut entities = Vec::new();
         let distance_i32 = distance as i32;
+        let center_pos = *center;
 
-        for x in (center.x - distance_i32)..=(center.x + distance_i32)
-        {
-            for y in (center.y - distance_i32)..=(center.y + distance_i32)
-            {
-                let pos = GridPosition::new(x, y);
-                if pos.manhattan_distance(center) <= distance
-                {
-                    if let Some(bounds) = self.bounds
-                        && !bounds.contains(&pos)
-                    {
-                        continue;
-                    }
-                    entities.extend_from_slice(self.entities_at(&pos));
-                }
-            }
-        }
-        entities
+        (center.x - distance_i32..=center.x + distance_i32)
+            .flat_map(move |x| {
+                (center.y - distance_i32..=center.y + distance_i32)
+                    .map(move |y| GridPosition::new(x, y))
+            })
+            .filter(move |pos| (pos.0 - center_pos.0).abs().element_sum() as u32 <= distance)
+            .filter(move |pos| self.bounds.map_or(true, |bounds| bounds.contains(&pos)))
+            .flat_map(move |pos| self.entities_at(&pos).collect::<Vec<_>>())
+            .collect()
     }
 
     /// Clear all entities from the spatial index.
@@ -309,16 +323,18 @@ impl SpatialGrid
         self.entity_to_position.clear();
     }
 
-    /// Get all occupied positions in the grid.
+    /// Check if a position is empty (has no entities).
     #[must_use]
-    pub fn occupied_positions(&self) -> Vec<GridPosition>
+    pub fn is_empty(&self, position: &GridPosition) -> bool
     {
-        self.position_to_entities.keys().copied().collect()
+        self.position_to_entities
+            .get(position)
+            .map_or(true, |set| set.is_empty())
     }
 
     /// Get total number of entities in the grid.
     #[must_use]
-    pub fn entity_count(&self) -> usize
+    pub fn num_entities(&self) -> usize
     {
         self.entity_to_position.len()
     }
@@ -374,12 +390,8 @@ impl Plugin for SpatialGridPlugin
 }
 
 /// Query for entities with `GridPosition` components that have been added or changed.
-type GridPositionQuery<'world, 'state> = Query<
-    'world,
-    'state,
-    (Entity, &'static GridPosition),
-    Or<(Added<GridPosition>, Changed<GridPosition>)>,
->;
+type GridPositionQuery<'world, 'state> =
+    Query<'world, 'state, (Entity, &'static GridPosition), Changed<GridPosition>>;
 
 /// System that updates the spatial grid when entities with `GridPosition` are added or moved.
 pub fn spatial_grid_update_system(mut spatial_grid: ResMut<SpatialGrid>, query: GridPositionQuery)

@@ -22,6 +22,8 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::cast_precision_loss)]
 
+use std::collections::HashSet;
+
 use incerto::prelude::*;
 use rand::prelude::*;
 
@@ -41,7 +43,7 @@ const INITIAL_FIRE_COUNT: usize = 3; // Number of initial fire sources
 const SAMPLE_INTERVAL: usize = 1;
 
 /// Represents the state of a forest cell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CellState
 {
     /// Healthy forest that can catch fire
@@ -54,24 +56,15 @@ pub enum CellState
     /// Already burned, cannot burn again
     Burned,
     /// Empty land that can regrow
+    #[default]
     Empty,
 }
 
 /// Component representing a single cell in the forest grid.
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default)]
 pub struct ForestCell
 {
     pub state: CellState,
-}
-
-impl Default for ForestCell
-{
-    fn default() -> Self
-    {
-        Self {
-            state: CellState::Empty,
-        }
-    }
 }
 
 /// Fire statistics collected during simulation.
@@ -111,6 +104,8 @@ impl Sample<FireStats> for ForestCell
 {
     fn sample(components: &[&Self]) -> FireStats
     {
+        assert!(!components.is_empty());
+
         let mut healthy_count = 0;
         let mut burning_count = 0;
         let mut burned_count = 0;
@@ -284,7 +279,7 @@ fn fire_spread_system(
 )
 {
     let mut rng = rand::rng();
-    let mut spread_positions = Vec::new();
+    let mut spread_positions = HashSet::new();
 
     // Find all burning cells
     for (burning_entity, burning_pos) in &query_burning
@@ -306,7 +301,7 @@ fn fire_spread_system(
                         // Fire spreads with probability
                         if rng.random_bool(FIRE_SPREAD_PROBABILITY)
                         {
-                            spread_positions.push(*neighbor_pos);
+                            spread_positions.insert(*neighbor_pos);
                         }
                     }
                 }

@@ -7,7 +7,6 @@
     - Shows how entities can interact with each other.
     - Samples the simulation by counting entities.
 - **[traders.rs](traders.rs)**
-    - The most complicated example.
     - Two different kinds of entities interacting with each other.
     - Data is sampled as a time series and plotted.
 - **[forest_fire.rs](forest_fire.rs)**
