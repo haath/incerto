@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::{
     Sample, SimulationBuildError,
-    plugins::{StepCounterPlugin, TimeSeries, TimeSeriesPlugin},
+    plugins::{GridBounds, SpatialGridPlugin, StepCounterPlugin, TimeSeries, TimeSeriesPlugin},
     simulation::Simulation,
     spawner::Spawner,
 };
@@ -73,6 +73,29 @@ impl SimulationBuilder
     pub fn register_event<E: Event>(mut self) -> Self
     {
         self.sim.app.add_event::<E>();
+        self
+    }
+
+    /// Add spatial grid support to the simulation.
+    ///
+    /// This enables efficient spatial queries for entities with `GridPosition` components.
+    /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
+    ///
+    /// # Example
+    /// ```rust
+    /// use incerto::prelude::*;
+    ///
+    /// let bounds = GridBounds::new(0, 99, 0, 99);
+    /// let simulation = SimulationBuilder::new()
+    ///     .add_spatial_grid(bounds)
+    ///     .build();
+    /// ```
+    #[must_use]
+    pub fn add_spatial_grid(mut self, bounds: GridBounds) -> Self
+    {
+        self.sim
+            .app
+            .add_plugins(SpatialGridPlugin::with_bounds(bounds));
         self
     }
 

@@ -37,6 +37,8 @@ In-depth knowledge of Bevy's internals is not required however, since we have ab
 use incerto::prelude::*;
 
 let simulation: Simulation = SimulationBuilder::new()
+                                // add resources if needed
+                                .insert_resource(...)
                                 // add one or more entity spawners
                                 .add_entity_spawner(...)
                                 .add_entity_spawner(...)
@@ -173,6 +175,21 @@ Currently the following ways of fetching simulation results are supported.
 - Read out a value aggregated from multiple existing entities with component `C` by implementing `Sample<O>` for `C` and then calling `simulation.sample::<C, O>()`. This will return the single value of type `O` prepared by the implementation of the trait.
     - Or `simulation.sample_filtered::<C, F, O>()`, with `F` being a query filter, to only sample from specific entities.
 - Record and collect time series data of values sampled from components. Call `builder.record_time_series::<C, O>()` on the builder to set up the recording, and then `simulation.get_time_series::<C, O>()` to collect the results.
+
+
+## Examples
+
+The crate includes several comprehensive examples demonstrating different simulation patterns:
+
+### Basic Simulations
+- **[Counter](examples/counter.rs)** - Simple entity counting and state management
+- **[Pandemic](examples/pandemic.rs)** - Basic disease spread simulation with random movement
+- **[Step Counter](examples/step_counter.rs)** - Demonstrates the built-in step counter plugin
+- **[Traders](examples/traders.rs)** - Time series collection with multiple trader agents
+
+### Spatial Simulations
+- **[Forest Fire](examples/forest_fire.rs)** - Cellular automaton fire spread with spatial grid optimization
+- **[Pandemic Spatial](examples/pandemic_spatial.rs)** - Advanced epidemic modeling with infection radius, social distancing, contact tracing, and quarantine zones
 
 
 ## Performance
