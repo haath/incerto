@@ -702,15 +702,27 @@ impl<T: GridCoordinate, C: Component> Plugin for SpatialGridPlugin<T, C>
 pub fn spatial_grid_reset_system<T: GridCoordinate, C: Component>(
     mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
     step_counter: Res<StepCounter>,
+    mut commands: Commands,
 )
 {
     // Reset the spatial grid whenever the step counter is 0
     // This should occur on the first step of every simulation
     if **step_counter == 0
     {
-        for mut spatial_grid in &mut spatial_grids
+        if spatial_grids.is_empty()
         {
-            spatial_grid.clear();
+            // If no spatial grid entity exists, create one
+            // This handles the case where reset() cleared all entities
+            // TODO: Feels hacky
+            let spatial_grid = SpatialGrid::<T, C>::new(None);
+            commands.spawn((spatial_grid, SpatialGridEntity));
+        }
+        else
+        {
+            for mut spatial_grid in &mut spatial_grids
+            {
+                spatial_grid.clear();
+            }
         }
     }
 }
