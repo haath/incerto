@@ -342,18 +342,6 @@ pub struct SpatialGrid<T: GridCoordinate>
     bounds: Option<GridBounds<T>>,
 }
 
-impl<T: GridCoordinate> Default for SpatialGrid<T>
-{
-    fn default() -> Self
-    {
-        Self {
-            position_to_entities: HashMap::default(),
-            entity_to_position: EntityHashMap::default(),
-            bounds: None,
-        }
-    }
-}
-
 /// Grid bounds representing the valid area for grid positions.
 /// Generic over coordinate types that implement the `GridCoordinate` trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -553,17 +541,12 @@ impl From<GridBounds<IVec2>> for IRect
 impl<T: GridCoordinate> SpatialGrid<T>
 {
     #[must_use]
-    pub fn new() -> Self
-    {
-        Self::default()
-    }
-
-    #[must_use]
-    pub fn with_bounds(bounds: GridBounds<T>) -> Self
+    pub fn new(bounds: Option<GridBounds<T>>) -> Self
     {
         Self {
-            bounds: Some(bounds),
-            ..Self::default()
+            position_to_entities: HashMap::default(),
+            entity_to_position: EntityHashMap::default(),
+            bounds,
         }
     }
 
@@ -701,35 +684,19 @@ pub struct SpatialGridPlugin<T: GridCoordinate>
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: GridCoordinate> Default for SpatialGridPlugin<T>
-{
-    fn default() -> Self
-    {
-        Self::new()
-    }
-}
-
 impl<T: GridCoordinate> SpatialGridPlugin<T>
 {
-    pub const fn new() -> Self
+    pub const fn new(bounds: Option<GridBounds<T>>) -> Self
     {
         Self {
-            bounds: None,
-            _phantom: std::marker::PhantomData,
-        }
-    }
-
-    pub const fn with_bounds(bounds: GridBounds<T>) -> Self
-    {
-        Self {
-            bounds: Some(bounds),
+            bounds,
             _phantom: std::marker::PhantomData,
         }
     }
 
     pub fn init(app: &mut App, bounds: Option<GridBounds<T>>)
     {
-        let spatial_grid = bounds.map_or_else(SpatialGrid::new, SpatialGrid::with_bounds);
+        let spatial_grid = SpatialGrid::new(bounds);
         app.insert_resource(spatial_grid);
     }
 }

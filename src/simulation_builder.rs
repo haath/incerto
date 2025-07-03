@@ -98,7 +98,7 @@ impl SimulationBuilder
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin2D::with_bounds(bounds));
+            .add_plugins(SpatialGridPlugin2D::new(Some(bounds)));
         self
     }
 
@@ -121,7 +121,7 @@ impl SimulationBuilder
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin3D::with_bounds(bounds));
+            .add_plugins(SpatialGridPlugin3D::new(Some(bounds)));
         self
     }
 
