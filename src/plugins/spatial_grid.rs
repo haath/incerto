@@ -70,9 +70,6 @@ pub trait GridCoordinate:
 
     /// Check if this coordinate is within the given bounds.
     fn within_bounds(self, bounds: &Self::Bounds) -> bool;
-
-    /// Generate all coordinates within a Manhattan distance of this coordinate.
-    fn coordinates_within_distance(self, distance: u32) -> Box<dyn Iterator<Item = Self>>;
 }
 
 /// Private module to enforce the sealed trait pattern.
@@ -150,19 +147,6 @@ impl GridCoordinate for IVec2
     {
         bounds.0.contains(self)
     }
-
-    fn coordinates_within_distance(self, distance: u32) -> Box<dyn Iterator<Item = Self>>
-    {
-        #[allow(clippy::cast_possible_wrap)]
-        let distance_i32 = distance as i32;
-        Box::new(
-            (self.x - distance_i32..=self.x + distance_i32)
-                .flat_map(move |x| {
-                    (self.y - distance_i32..=self.y + distance_i32).map(move |y| Self::new(x, y))
-                })
-                .filter(move |pos| self.manhattan_distance(*pos) <= distance),
-        )
-    }
 }
 
 impl GridCoordinate for IVec3
@@ -236,22 +220,6 @@ impl GridCoordinate for IVec3
             && self.y <= bounds.max.y
             && self.z >= bounds.min.z
             && self.z <= bounds.max.z
-    }
-
-    fn coordinates_within_distance(self, distance: u32) -> Box<dyn Iterator<Item = Self>>
-    {
-        #[allow(clippy::cast_possible_wrap)]
-        let distance_i32 = distance as i32;
-        Box::new(
-            (self.x - distance_i32..=self.x + distance_i32)
-                .flat_map(move |x| {
-                    (self.y - distance_i32..=self.y + distance_i32).flat_map(move |y| {
-                        (self.z - distance_i32..=self.z + distance_i32)
-                            .map(move |z| Self::new(x, y, z))
-                    })
-                })
-                .filter(move |pos| self.manhattan_distance(*pos) <= distance),
-        )
     }
 }
 
