@@ -445,9 +445,24 @@ fn spatial_disease_transmission(
 
     for (infectious_entity, infectious_pos) in infectious_people
     {
-        // Get all people within infection radius
-        let nearby_entities =
-            spatial_grid.entities_within_distance(&infectious_pos, INFECTION_RADIUS);
+        // Get all people within infection radius using iterative approach
+        let mut nearby_entities = Vec::new();
+        let infectious_coord = *infectious_pos;
+
+        // Check all positions within Manhattan distance of INFECTION_RADIUS
+        for dx in -(INFECTION_RADIUS as i32)..=(INFECTION_RADIUS as i32)
+        {
+            for dy in -(INFECTION_RADIUS as i32)..=(INFECTION_RADIUS as i32)
+            {
+                let manhattan_distance = dx.abs() + dy.abs();
+                if manhattan_distance <= INFECTION_RADIUS as i32
+                {
+                    let check_pos =
+                        GridPosition2D::new_2d(infectious_coord.x + dx, infectious_coord.y + dy);
+                    nearby_entities.extend(spatial_grid.entities_at(&check_pos));
+                }
+            }
+        }
 
         for nearby_entity in nearby_entities
         {

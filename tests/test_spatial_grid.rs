@@ -238,8 +238,31 @@ fn test_3d_spatial_grid_integration()
                 // Test 3D spatial queries
                 let center_pos = GridPosition3D::new_3d(2, 2, 2);
 
-                // Find entities within distance 2 in 3D space
-                let nearby_entities = spatial_grid.entities_within_distance(&center_pos, 2);
+                // Find entities within distance 2 in 3D space using neighbor-based approach
+                let mut nearby_entities = Vec::new();
+                let center_coord = center_pos.0;
+
+                // Check all positions within Manhattan distance of 2
+                for dx in -2i32..=2i32
+                {
+                    for dy in -2i32..=2i32
+                    {
+                        for dz in -2i32..=2i32
+                        {
+                            let manhattan_distance = dx.abs() + dy.abs() + dz.abs();
+                            if manhattan_distance <= 2
+                            {
+                                let check_pos = GridPosition3D::new_3d(
+                                    center_coord.x + dx,
+                                    center_coord.y + dy,
+                                    center_coord.z + dz,
+                                );
+                                nearby_entities.extend(spatial_grid.entities_at(&check_pos));
+                            }
+                        }
+                    }
+                }
+
                 assert!(
                     !nearby_entities.is_empty(),
                     "Should find nearby entities in 3D"
