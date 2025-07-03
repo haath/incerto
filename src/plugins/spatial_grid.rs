@@ -669,19 +669,6 @@ impl<T: GridCoordinate> SpatialGrid<T>
             })
     }
 
-    /// Get all entities within a Manhattan distance of a position.
-    #[must_use]
-    pub fn entities_within_distance(&self, center: &GridPosition<T>, distance: u32) -> Vec<Entity>
-    {
-        center
-            .0
-            .coordinates_within_distance(distance)
-            .map(GridPosition)
-            .filter(|pos| self.bounds.is_none_or(|bounds| bounds.contains(pos)))
-            .flat_map(|pos| self.entities_at(&pos).collect::<Vec<_>>())
-            .collect()
-    }
-
     /// Clear all entities from the spatial index.
     pub fn clear(&mut self)
     {
