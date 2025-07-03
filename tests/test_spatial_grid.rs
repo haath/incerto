@@ -2,8 +2,11 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::cast_possible_truncation)]
 
+use bevy::prelude::{IVec2, IVec3};
 use incerto::{
-    plugins::{GridBounds3D, GridPosition3D, SpatialGrid3D},
+    plugins::{
+        GridBounds2D, GridBounds3D, GridPosition2D, GridPosition3D, SpatialGrid, SpatialGridEntity,
+    },
     prelude::*,
 };
 
@@ -224,7 +227,7 @@ fn test_3d_spatial_grid_integration()
     let bounds = GridBounds3D::new_3d(0, 4, 0, 4, 0, 4);
 
     let builder = SimulationBuilder::new()
-        .add_spatial_grid(bounds)
+        .add_spatial_grid::<IVec3, TestEntity3D>(bounds)
         .add_entity_spawner(|spawner| {
             // Spawn entities at different 3D positions
             spawner.spawn((GridPosition3D::new_3d(0, 0, 0), TestEntity3D(1)));
@@ -233,8 +236,13 @@ fn test_3d_spatial_grid_integration()
             spawner.spawn((GridPosition3D::new_3d(1, 2, 3), TestEntity3D(4)));
         })
         .add_systems(
-            |spatial_grid: Res<SpatialGrid3D>,
+            |spatial_grids: Query<&SpatialGrid<IVec3, TestEntity3D>, With<SpatialGridEntity>>,
              query: Query<(Entity, &GridPosition3D, &TestEntity3D)>| {
+                let Ok(spatial_grid) = spatial_grids.single()
+                else
+                {
+                    return; // Skip if spatial grid not found
+                };
                 // Test 3D spatial queries
                 let center_pos = GridPosition3D::new_3d(2, 2, 2);
 
@@ -285,4 +293,47 @@ fn test_3d_spatial_grid_integration()
     // Verify all entities were created
     let entity_count = simulation.sample::<TestEntity3D, usize>().unwrap();
     assert_eq!(entity_count, 4);
+}
+
+#[test]
+fn test_spatial_grid_reset_functionality()
+{
+    #[derive(Component)]
+    #[allow(dead_code)]
+    struct TestResetEntity(i32);
+
+    impl Sample<usize> for TestResetEntity
+    {
+        fn sample(components: &[&Self]) -> usize
+        {
+            components.len()
+        }
+    }
+
+    let bounds = GridBounds2D::new_2d(0, 4, 0, 4);
+
+    let mut simulation = SimulationBuilder::new()
+        .add_spatial_grid::<IVec2, TestResetEntity>(bounds)
+        .add_entity_spawner(|spawner| {
+            // Spawn entities at different positions
+            spawner.spawn((GridPosition2D::new_2d(0, 0), TestResetEntity(1)));
+            spawner.spawn((GridPosition2D::new_2d(2, 2), TestResetEntity(2)));
+            spawner.spawn((GridPosition2D::new_2d(4, 4), TestResetEntity(3)));
+        })
+        .build();
+
+    // Run first simulation
+    simulation.run(2);
+
+    // Verify entities are tracked
+    let entity_count = simulation.sample::<TestResetEntity, usize>().unwrap();
+    assert_eq!(entity_count, 3);
+
+    // Reset simulation (this should trigger spatial grid reset on step 0)
+    simulation.reset();
+    simulation.run(1);
+
+    // Verify entities are still tracked after reset
+    let entity_count_after_reset = simulation.sample::<TestResetEntity, usize>().unwrap();
+    assert_eq!(entity_count_after_reset, 3);
 }

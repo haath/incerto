@@ -6,6 +6,14 @@ use bevy::{
 
 use crate::plugins::step_counter::StepCounter;
 
+/// Default marker component for spatial grids that don't specify a component filter.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct DefaultSpatialComponent;
+
+/// Marker component to identify spatial grid entities.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct SpatialGridEntity;
+
 // Direction constants for 2D grid movement
 const NORTH: IVec2 = IVec2::new(0, -1);
 const SOUTH: IVec2 = IVec2::new(0, 1);
@@ -299,10 +307,10 @@ impl GridPosition<IVec3>
     }
 }
 
-/// Resource that maintains a spatial index for efficient neighbor queries.
-/// Generic over coordinate types that implement the `GridCoordinate` trait.
-#[derive(Resource)]
-pub struct SpatialGrid<T: GridCoordinate>
+/// Component that maintains a spatial index for efficient neighbor queries.
+/// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
+#[derive(Component)]
+pub struct SpatialGrid<T: GridCoordinate, C: Component = DefaultSpatialComponent>
 {
     /// Maps grid positions to entities at those positions.
     position_to_entities: HashMap<GridPosition<T>, HashSet<Entity>>,
@@ -310,6 +318,8 @@ pub struct SpatialGrid<T: GridCoordinate>
     entity_to_position: EntityHashMap<GridPosition<T>>,
     /// Grid bounds for validation and iteration.
     bounds: Option<GridBounds<T>>,
+    /// Phantom data to maintain type association with component C.
+    _phantom: std::marker::PhantomData<C>,
 }
 
 /// Grid bounds representing the valid area for grid positions.
@@ -508,7 +518,7 @@ impl From<GridBounds<IVec2>> for IRect
     }
 }
 
-impl<T: GridCoordinate> SpatialGrid<T>
+impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
 {
     #[must_use]
     pub fn new(bounds: Option<GridBounds<T>>) -> Self
@@ -517,6 +527,7 @@ impl<T: GridCoordinate> SpatialGrid<T>
             position_to_entities: HashMap::default(),
             entity_to_position: EntityHashMap::default(),
             bounds,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -647,14 +658,14 @@ impl<T: GridCoordinate> SpatialGrid<T>
 }
 
 /// Plugin that maintains a spatial index for entities with `GridPosition` components.
-/// Generic over coordinate types that implement the `GridCoordinate` trait.
-pub struct SpatialGridPlugin<T: GridCoordinate>
+/// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
+pub struct SpatialGridPlugin<T: GridCoordinate, C: Component = DefaultSpatialComponent>
 {
     bounds: Option<GridBounds<T>>,
-    _phantom: std::marker::PhantomData<T>,
+    _phantom: std::marker::PhantomData<(T, C)>,
 }
 
-impl<T: GridCoordinate> SpatialGridPlugin<T>
+impl<T: GridCoordinate, C: Component> SpatialGridPlugin<T, C>
 {
     pub const fn new(bounds: Option<GridBounds<T>>) -> Self
     {
@@ -666,12 +677,13 @@ impl<T: GridCoordinate> SpatialGridPlugin<T>
 
     pub fn init(app: &mut App, bounds: Option<GridBounds<T>>)
     {
-        let spatial_grid = SpatialGrid::new(bounds);
-        app.insert_resource(spatial_grid);
+        // Spawn the spatial grid entity directly
+        let spatial_grid = SpatialGrid::<T, C>::new(bounds);
+        app.world_mut().spawn((spatial_grid, SpatialGridEntity));
     }
 }
 
-impl<T: GridCoordinate> Plugin for SpatialGridPlugin<T>
+impl<T: GridCoordinate, C: Component> Plugin for SpatialGridPlugin<T, C>
 {
     fn build(&self, app: &mut App)
     {
@@ -681,9 +693,9 @@ impl<T: GridCoordinate> Plugin for SpatialGridPlugin<T>
         app.add_systems(
             PreUpdate,
             (
-                spatial_grid_reset_system::<T>,
-                spatial_grid_update_system::<T>,
-                spatial_grid_cleanup_system::<T>,
+                spatial_grid_reset_system::<T, C>,
+                spatial_grid_update_system::<T, C>,
+                spatial_grid_cleanup_system::<T, C>,
             )
                 .chain(),
         );
@@ -691,8 +703,8 @@ impl<T: GridCoordinate> Plugin for SpatialGridPlugin<T>
 }
 
 /// System that resets the spatial grid at the beginning of each simulation.
-pub fn spatial_grid_reset_system<T: GridCoordinate>(
-    mut spatial_grid: ResMut<SpatialGrid<T>>,
+pub fn spatial_grid_reset_system<T: GridCoordinate, C: Component>(
+    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
     step_counter: Res<StepCounter>,
 )
 {
@@ -700,44 +712,53 @@ pub fn spatial_grid_reset_system<T: GridCoordinate>(
     // This should occur on the first step of every simulation
     if **step_counter == 0
     {
-        spatial_grid.clear();
+        for mut spatial_grid in &mut spatial_grids
+        {
+            spatial_grid.clear();
+        }
     }
 }
 
 /// Query for entities with `GridPosition` components that have been added or changed.
-type GridPositionQuery<'world, 'state, T> =
-    Query<'world, 'state, (Entity, &'static GridPosition<T>), Changed<GridPosition<T>>>;
+type GridPositionQuery<'world, 'state, T, C> =
+    Query<'world, 'state, (Entity, &'static GridPosition<T>), (Changed<GridPosition<T>>, With<C>)>;
 
 /// System that updates the spatial grid when entities with `GridPosition` are added or moved.
-pub fn spatial_grid_update_system<T: GridCoordinate>(
-    mut spatial_grid: ResMut<SpatialGrid<T>>,
-    query: GridPositionQuery<T>,
+pub fn spatial_grid_update_system<T: GridCoordinate, C: Component>(
+    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
+    query: GridPositionQuery<T, C>,
 )
 {
-    for (entity, position) in &query
+    if let Ok(mut spatial_grid) = spatial_grids.single_mut()
     {
-        spatial_grid.insert(entity, *position);
+        for (entity, position) in &query
+        {
+            spatial_grid.insert(entity, *position);
+        }
     }
 }
 
 /// System that removes entities from the spatial grid when they no longer have `GridPosition`.
-pub fn spatial_grid_cleanup_system<T: GridCoordinate>(
-    mut spatial_grid: ResMut<SpatialGrid<T>>,
+pub fn spatial_grid_cleanup_system<T: GridCoordinate, C: Component>(
+    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
     mut removed: RemovedComponents<GridPosition<T>>,
 )
 {
-    for entity in removed.read()
+    if let Ok(mut spatial_grid) = spatial_grids.single_mut()
     {
-        spatial_grid.remove(entity);
+        for entity in removed.read()
+        {
+            spatial_grid.remove(entity);
+        }
     }
 }
 
 // Type aliases for convenience
 /// 2D spatial grid using `IVec2` coordinates.
-pub type SpatialGrid2D = SpatialGrid<IVec2>;
+pub type SpatialGrid2D<C = DefaultSpatialComponent> = SpatialGrid<IVec2, C>;
 
 /// 3D spatial grid using `IVec3` coordinates.
-pub type SpatialGrid3D = SpatialGrid<IVec3>;
+pub type SpatialGrid3D<C = DefaultSpatialComponent> = SpatialGrid<IVec3, C>;
 
 /// 2D grid position using `IVec2` coordinates.
 pub type GridPosition2D = GridPosition<IVec2>;
@@ -752,7 +773,7 @@ pub type GridBounds2D = GridBounds<IVec2>;
 pub type GridBounds3D = GridBounds<IVec3>;
 
 /// 2D spatial grid plugin.
-pub type SpatialGridPlugin2D = SpatialGridPlugin<IVec2>;
+pub type SpatialGridPlugin2D<C = DefaultSpatialComponent> = SpatialGridPlugin<IVec2, C>;
 
 /// 3D spatial grid plugin.
-pub type SpatialGridPlugin3D = SpatialGridPlugin<IVec3>;
+pub type SpatialGridPlugin3D<C = DefaultSpatialComponent> = SpatialGridPlugin<IVec3, C>;

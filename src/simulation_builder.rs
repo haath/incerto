@@ -79,35 +79,39 @@ impl SimulationBuilder
         self
     }
 
-    /// Add spatial grid support to the simulation.
+    /// Add a spatial grid for a specific component type to the simulation.
     ///
-    /// This enables efficient spatial queries for entities with grid position components.
-    /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
-    /// Works with both 2D and 3D coordinate systems.
     ///
-    /// # Example
-    /// ```rust
-    /// use incerto::prelude::*;
-    /// use incerto::plugins::GridBounds3D;
+    /// This creates a spatial index for entities that have both `GridPosition<T>` and the specified component `C`.
+    /// Multiple spatial grids can coexist for different component types.
+    /// The spatial grid will be spawned as an entity during simulation startup.
     ///
-    /// // 2D spatial grid
-    /// let bounds_2d = GridBounds2D::new_2d(0, 99, 0, 99);
-    /// let simulation_2d = SimulationBuilder::new()
-    ///     .add_spatial_grid(bounds_2d)
-    ///     .build();
+    /// Example:
+    /// ```
+    /// # use bevy::prelude::IVec2;
+    /// # use incerto::prelude::*;
+    /// # use incerto::plugins::{GridBounds2D};
+    /// #[derive(Component)]
+    /// struct Person;
     ///
-    /// // 3D spatial grid  
-    /// let bounds_3d = GridBounds3D::new_3d(0, 99, 0, 99, 0, 99);
-    /// let simulation_3d = SimulationBuilder::new()
-    ///     .add_spatial_grid(bounds_3d)
+    /// #[derive(Component)]
+    /// struct Vehicle;
+    ///
+    /// let bounds = GridBounds2D::new_2d(0, 99, 0, 99);
+    /// let simulation = SimulationBuilder::new()
+    ///     .add_spatial_grid::<IVec2, Person>(bounds)
+    ///     .add_spatial_grid::<IVec2, Vehicle>(bounds)
     ///     .build();
     /// ```
     #[must_use]
-    pub fn add_spatial_grid<T: GridCoordinate>(mut self, bounds: GridBounds<T>) -> Self
+    pub fn add_spatial_grid<T: GridCoordinate, C: Component>(
+        mut self,
+        bounds: GridBounds<T>,
+    ) -> Self
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin::<T>::new(Some(bounds)));
+            .add_plugins(SpatialGridPlugin::<T, C>::new(Some(bounds)));
         self
     }
 
