@@ -224,7 +224,7 @@ fn test_3d_spatial_grid_integration()
     let bounds = GridBounds3D::new_3d(0, 4, 0, 4, 0, 4);
 
     let builder = SimulationBuilder::new()
-        .add_spatial_grid_3d(bounds)
+        .add_spatial_grid(bounds)
         .add_entity_spawner(|spawner| {
             // Spawn entities at different 3D positions
             spawner.spawn((GridPosition3D::new_3d(0, 0, 0), TestEntity3D(1)));

@@ -6,6 +6,7 @@ pub use time_series::{TimeSeries, TimeSeriesPlugin};
 
 mod spatial_grid;
 pub use spatial_grid::{
-    GridBounds2D, GridBounds3D, GridCoordinate, GridPosition2D, GridPosition3D, SpatialGrid2D,
-    SpatialGrid3D, SpatialGridPlugin2D, SpatialGridPlugin3D,
+    GridBounds, GridBounds2D, GridBounds3D, GridCoordinate, GridPosition, GridPosition2D,
+    GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D, SpatialGridPlugin,
+    SpatialGridPlugin2D, SpatialGridPlugin3D,
 };

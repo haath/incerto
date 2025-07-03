@@ -7,8 +7,8 @@ use bevy::{
 use crate::{
     Sample, SimulationBuildError,
     plugins::{
-        GridBounds2D, GridBounds3D, SpatialGridPlugin2D, SpatialGridPlugin3D, StepCounterPlugin,
-        TimeSeries, TimeSeriesPlugin,
+        GridBounds, GridCoordinate, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
+        TimeSeriesPlugin,
     },
     simulation::Simulation,
     spawner::Spawner,
@@ -79,49 +79,35 @@ impl SimulationBuilder
         self
     }
 
-    /// Add 2D spatial grid support to the simulation.
+    /// Add spatial grid support to the simulation.
     ///
-    /// This enables efficient spatial queries for entities with `GridPosition2D` components.
+    /// This enables efficient spatial queries for entities with grid position components.
     /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
+    /// Works with both 2D and 3D coordinate systems.
     ///
     /// # Example
     /// ```rust
     /// use incerto::prelude::*;
+    /// use incerto::plugins::GridBounds3D;
     ///
-    /// let bounds = GridBounds2D::new_2d(0, 99, 0, 99);
-    /// let simulation = SimulationBuilder::new()
-    ///     .add_spatial_grid(bounds)
+    /// // 2D spatial grid
+    /// let bounds_2d = GridBounds2D::new_2d(0, 99, 0, 99);
+    /// let simulation_2d = SimulationBuilder::new()
+    ///     .add_spatial_grid(bounds_2d)
+    ///     .build();
+    ///
+    /// // 3D spatial grid  
+    /// let bounds_3d = GridBounds3D::new_3d(0, 99, 0, 99, 0, 99);
+    /// let simulation_3d = SimulationBuilder::new()
+    ///     .add_spatial_grid(bounds_3d)
     ///     .build();
     /// ```
     #[must_use]
-    pub fn add_spatial_grid(mut self, bounds: GridBounds2D) -> Self
+    pub fn add_spatial_grid<T: GridCoordinate>(mut self, bounds: GridBounds<T>) -> Self
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin2D::new(Some(bounds)));
-        self
-    }
-
-    /// Add 3D spatial grid support to the simulation.
-    ///
-    /// This enables efficient spatial queries for entities with `GridPosition3D` components.
-    /// The spatial grid provides O(1) neighbor lookups and distance-based entity searches.
-    ///
-    /// # Example
-    /// ```rust
-    /// use incerto::{SimulationBuilder, plugins::GridBounds3D};
-    ///
-    /// let bounds = GridBounds3D::new_3d(0, 99, 0, 99, 0, 99);
-    /// let simulation = SimulationBuilder::new()
-    ///     .add_spatial_grid_3d(bounds)
-    ///     .build();
-    /// ```
-    #[must_use]
-    pub fn add_spatial_grid_3d(mut self, bounds: GridBounds3D) -> Self
-    {
-        self.sim
-            .app
-            .add_plugins(SpatialGridPlugin3D::new(Some(bounds)));
+            .add_plugins(SpatialGridPlugin::<T>::new(Some(bounds)));
         self
     }
 
