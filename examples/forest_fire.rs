@@ -3,7 +3,7 @@
 //! This example showcases a spatial cellular automaton simulation where fire spreads
 //! through a forest based on probabilistic rules. The simulation demonstrates:
 //!
-//! * Spatial grid-based entities using the `SpatialGrid2DPlugin`
+//! * Spatial grid-based entities using the `SpatialGridPlugin`
 //! * Entity state transitions (Healthy → Burning → Burned → Empty)
 //! * Neighborhood interactions for fire spreading
 //! * Time series collection of fire statistics
@@ -24,7 +24,11 @@
 
 use std::collections::HashSet;
 
-use incerto::prelude::*;
+use bevy::prelude::IVec2;
+use incerto::{
+    plugins::{SpatialGrid, SpatialGridEntity},
+    prelude::*,
+};
 use rand::prelude::*;
 
 // Simulation parameters
@@ -151,7 +155,7 @@ fn main()
     let bounds = GridBounds2D::new_2d(0, GRID_WIDTH - 1, 0, GRID_HEIGHT - 1);
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
-        .add_spatial_grid(bounds)
+        .add_spatial_grid::<IVec2, ForestCell>(bounds)
         // Spawn the forest grid
         .add_entity_spawner(spawn_forest_grid)
         // Add fire spread system
@@ -271,13 +275,19 @@ fn spawn_forest_grid(spawner: &mut Spawner)
     }
 }
 
-/// System that handles fire spreading to neighboring cells using `SpatialGrid2D`.
+/// System that handles fire spreading to neighboring cells using the spatial grid.
 fn fire_spread_system(
-    spatial_grid: Res<SpatialGrid2D>,
+    spatial_grids: Query<&SpatialGrid<IVec2, ForestCell>, With<SpatialGridEntity>>,
     query_burning: Query<(Entity, &GridPosition2D), With<ForestCell>>,
     mut query_cells: Query<(&GridPosition2D, &mut ForestCell)>,
 )
 {
+    let Ok(spatial_grid) = spatial_grids.single()
+    else
+    {
+        return; // Skip if spatial grid not found
+    };
+
     let mut rng = rand::rng();
     let mut spread_positions = HashSet::new();
 
@@ -288,7 +298,7 @@ fn fire_spread_system(
         if let Ok((_, cell)) = query_cells.get(burning_entity)
             && matches!(cell.state, CellState::Burning { .. })
         {
-            // Get orthogonal neighbors using SpatialGrid2D
+            // Get orthogonal neighbors using the spatial grid
             let neighbors = spatial_grid.orthogonal_neighbors_of(burning_pos);
 
             for neighbor_entity in neighbors

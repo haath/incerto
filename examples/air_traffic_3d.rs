@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 use incerto::{
-    plugins::{GridBounds3D, GridPosition3D, SpatialGrid3D},
+    plugins::{GridBounds3D, GridPosition3D, SpatialGrid, SpatialGridEntity},
     prelude::*,
 };
 use rand::prelude::*;
@@ -121,10 +121,16 @@ fn move_aircraft(mut query: Query<(&mut GridPosition3D, &Aircraft)>)
 
 /// Check for aircraft conflicts (too close in 3D space)
 fn check_conflicts(
-    spatial_grid: Res<SpatialGrid3D>,
+    spatial_grids: Query<&SpatialGrid<IVec3, Aircraft>, With<SpatialGridEntity>>,
     query: Query<(Entity, &GridPosition3D, &Aircraft)>,
 )
 {
+    let Ok(spatial_grid) = spatial_grids.single()
+    else
+    {
+        return; // Skip if spatial grid not found
+    };
+
     let mut conflicts = 0;
 
     for (entity, position, aircraft) in &query
@@ -222,7 +228,7 @@ fn main()
     );
 
     let mut simulation = SimulationBuilder::new()
-        .add_spatial_grid(bounds)
+        .add_spatial_grid::<IVec3, Aircraft>(bounds)
         .add_entity_spawner(spawn_aircraft)
         .add_systems((move_aircraft, check_conflicts, display_airspace))
         .build();

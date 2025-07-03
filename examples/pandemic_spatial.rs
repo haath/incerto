@@ -21,7 +21,11 @@
 
 use std::collections::HashSet;
 
-use incerto::prelude::*;
+use bevy::prelude::IVec2;
+use incerto::{
+    plugins::{SpatialGrid, SpatialGridEntity},
+    prelude::*,
+};
 use rand::prelude::*;
 
 // Simulation parameters
@@ -166,7 +170,7 @@ fn main()
     let bounds = GridBounds2D::new_2d(0, GRID_SIZE - 1, 0, GRID_SIZE - 1);
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
-        .add_spatial_grid(bounds)
+        .add_spatial_grid::<IVec2, Person>(bounds)
         // Spawn initial population
         .add_entity_spawner(spawn_population)
         // Movement and social distancing
@@ -305,9 +309,15 @@ fn spawn_population(spawner: &mut Spawner)
 /// Enhanced movement system with social distancing behavior
 fn people_move_with_social_distancing(
     mut query: Query<(&mut GridPosition2D, &Person, Option<&Quarantined>)>,
-    spatial_grid: Res<SpatialGrid2D>,
+    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
 )
 {
+    let Ok(spatial_grid) = spatial_grids.single()
+    else
+    {
+        return; // Skip if spatial grid not found
+    };
+
     let mut rng = rand::rng();
 
     for (mut position, person, quarantined) in &mut query
@@ -421,10 +431,16 @@ fn disease_incubation_progression(mut query: Query<&mut Person>)
 
 /// Advanced spatial disease transmission system using infection radius
 fn spatial_disease_transmission(
-    spatial_grid: Res<SpatialGrid2D>,
+    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
     mut query: Query<(Entity, &GridPosition2D, &mut Person), Without<Quarantined>>,
 )
 {
+    let Ok(spatial_grid) = spatial_grids.single()
+    else
+    {
+        return; // Skip if spatial grid not found
+    };
+
     let mut rng = rand::rng();
     let mut new_exposures = Vec::new();
 
@@ -551,7 +567,7 @@ fn update_contact_history(mut query: Query<(&GridPosition2D, &mut ContactHistory
 /// Process contact tracing when someone becomes infectious
 fn process_contact_tracing(
     mut commands: Commands,
-    spatial_grid: Res<SpatialGrid2D>,
+    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
     query_newly_infectious: Query<
         (Entity, &GridPosition2D, &ContactHistory),
         (With<Person>, Without<Quarantined>),
@@ -559,6 +575,12 @@ fn process_contact_tracing(
     query_potential_contacts: Query<Entity, (With<Person>, Without<Quarantined>)>,
 )
 {
+    let Ok(spatial_grid) = spatial_grids.single()
+    else
+    {
+        return; // Skip if spatial grid not found
+    };
+
     if !CONTACT_TRACING_ENABLED
     {
         return;
