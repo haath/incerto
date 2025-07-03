@@ -6,10 +6,6 @@ use bevy::{
 
 use crate::plugins::step_counter::StepCounter;
 
-/// Default marker component for spatial grids that don't specify a component filter.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct DefaultSpatialComponent;
-
 /// Marker component to identify spatial grid entities.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct SpatialGridEntity;
@@ -310,7 +306,7 @@ impl GridPosition<IVec3>
 /// Component that maintains a spatial index for efficient neighbor queries.
 /// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
 #[derive(Component)]
-pub struct SpatialGrid<T: GridCoordinate, C: Component = DefaultSpatialComponent>
+pub struct SpatialGrid<T: GridCoordinate, C: Component>
 {
     /// Maps grid positions to entities at those positions.
     position_to_entities: HashMap<GridPosition<T>, HashSet<Entity>>,
@@ -659,7 +655,7 @@ impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
 
 /// Plugin that maintains a spatial index for entities with `GridPosition` components.
 /// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
-pub struct SpatialGridPlugin<T: GridCoordinate, C: Component = DefaultSpatialComponent>
+pub struct SpatialGridPlugin<T: GridCoordinate, C: Component>
 {
     bounds: Option<GridBounds<T>>,
     _phantom: std::marker::PhantomData<(T, C)>,
@@ -755,10 +751,10 @@ pub fn spatial_grid_cleanup_system<T: GridCoordinate, C: Component>(
 
 // Type aliases for convenience
 /// 2D spatial grid using `IVec2` coordinates.
-pub type SpatialGrid2D<C = DefaultSpatialComponent> = SpatialGrid<IVec2, C>;
+pub type SpatialGrid2D<C> = SpatialGrid<IVec2, C>;
 
 /// 3D spatial grid using `IVec3` coordinates.
-pub type SpatialGrid3D<C = DefaultSpatialComponent> = SpatialGrid<IVec3, C>;
+pub type SpatialGrid3D<C> = SpatialGrid<IVec3, C>;
 
 /// 2D grid position using `IVec2` coordinates.
 pub type GridPosition2D = GridPosition<IVec2>;
@@ -773,7 +769,7 @@ pub type GridBounds2D = GridBounds<IVec2>;
 pub type GridBounds3D = GridBounds<IVec3>;
 
 /// 2D spatial grid plugin.
-pub type SpatialGridPlugin2D<C = DefaultSpatialComponent> = SpatialGridPlugin<IVec2, C>;
+pub type SpatialGridPlugin2D<C> = SpatialGridPlugin<IVec2, C>;
 
 /// 3D spatial grid plugin.
-pub type SpatialGridPlugin3D<C = DefaultSpatialComponent> = SpatialGridPlugin<IVec3, C>;
+pub type SpatialGridPlugin3D<C> = SpatialGridPlugin<IVec3, C>;

@@ -5,7 +5,7 @@ pub use bevy::prelude::{
 
 pub use super::{
     error::*,
-    plugins::{GridBounds2D, GridPosition2D, SpatialGrid2D},
+    plugins::{GridBounds2D, GridPosition2D},
     simulation::Simulation,
     simulation_builder::SimulationBuilder,
     spawner::Spawner,
