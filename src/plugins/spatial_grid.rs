@@ -4,6 +4,8 @@ use bevy::{
     prelude::*,
 };
 
+use crate::plugins::step_counter::StepCounter;
+
 // Direction constants for 2D grid movement
 const NORTH: IVec2 = IVec2::new(0, -1);
 const SOUTH: IVec2 = IVec2::new(0, 1);
@@ -711,11 +713,26 @@ impl<T: GridCoordinate> Plugin for SpatialGridPlugin<T>
         app.add_systems(
             PreUpdate,
             (
+                spatial_grid_reset_system::<T>,
                 spatial_grid_update_system::<T>,
                 spatial_grid_cleanup_system::<T>,
             )
                 .chain(),
         );
+    }
+}
+
+/// System that resets the spatial grid at the beginning of each simulation.
+pub fn spatial_grid_reset_system<T: GridCoordinate>(
+    mut spatial_grid: ResMut<SpatialGrid<T>>,
+    step_counter: Res<StepCounter>,
+)
+{
+    // Reset the spatial grid whenever the step counter is 0
+    // This should occur on the first step of every simulation
+    if **step_counter == 0
+    {
+        spatial_grid.clear();
     }
 }
 
