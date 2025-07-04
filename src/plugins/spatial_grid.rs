@@ -412,7 +412,7 @@ impl<T: GridCoordinates, C: Component> Plugin for SpatialGridPlugin<T, C>
 }
 
 /// System that resets the spatial grid at the beginning of each simulation.
-pub fn spatial_grid_reset_system<T: GridCoordinates, C: Component>(
+fn spatial_grid_reset_system<T: GridCoordinates, C: Component>(
     mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     step_counter: Res<StepCounter>,
 )
@@ -430,7 +430,7 @@ type GridPositionQuery<'world, 'state, T, C> =
     Query<'world, 'state, (Entity, &'static GridPosition<T>), (Changed<GridPosition<T>>, With<C>)>;
 
 /// System that updates the spatial grid when entities with `GridPosition` are added or moved.
-pub fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
+fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
     mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     query: GridPositionQuery<T, C>,
 )
@@ -443,7 +443,7 @@ pub fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
 }
 
 /// System that removes entities from the spatial grid when they no longer have `GridPosition`.
-pub fn spatial_grid_cleanup_system<T: GridCoordinates, C: Component>(
+fn spatial_grid_cleanup_system<T: GridCoordinates, C: Component>(
     mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     mut removed: RemovedComponents<GridPosition<T>>,
 )
