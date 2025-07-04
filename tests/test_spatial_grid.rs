@@ -16,21 +16,21 @@ struct TestEntity(i32);
 #[test]
 fn test_grid_position_neighbors()
 {
-    let pos = GridPosition2D::new_2d(1, 1);
+    let pos = GridPosition2D::new(1, 1);
 
     let neighbors: Vec<GridPosition2D> = pos.neighbors().collect();
     assert_eq!(neighbors.len(), 8);
 
     // Check all 8 neighbors are present
     let expected_neighbors = [
-        GridPosition2D::new_2d(0, 0),
-        GridPosition2D::new_2d(1, 0),
-        GridPosition2D::new_2d(2, 0),
-        GridPosition2D::new_2d(0, 1),
-        GridPosition2D::new_2d(2, 1),
-        GridPosition2D::new_2d(0, 2),
-        GridPosition2D::new_2d(1, 2),
-        GridPosition2D::new_2d(2, 2),
+        GridPosition2D::new(0, 0),
+        GridPosition2D::new(1, 0),
+        GridPosition2D::new(2, 0),
+        GridPosition2D::new(0, 1),
+        GridPosition2D::new(2, 1),
+        GridPosition2D::new(0, 2),
+        GridPosition2D::new(1, 2),
+        GridPosition2D::new(2, 2),
     ];
 
     for expected in expected_neighbors
@@ -46,16 +46,16 @@ fn test_grid_position_neighbors()
 #[test]
 fn test_grid_position_orthogonal_neighbors()
 {
-    let pos = GridPosition2D::new_2d(1, 1);
+    let pos = GridPosition2D::new(1, 1);
 
     let neighbors: Vec<GridPosition2D> = pos.neighbors_orthogonal().collect();
     assert_eq!(neighbors.len(), 4);
 
     let expected_neighbors = [
-        GridPosition2D::new_2d(1, 0), // top
-        GridPosition2D::new_2d(0, 1), // left
-        GridPosition2D::new_2d(2, 1), // right
-        GridPosition2D::new_2d(1, 2), // bottom
+        GridPosition2D::new(1, 0), // top
+        GridPosition2D::new(0, 1), // left
+        GridPosition2D::new(2, 1), // right
+        GridPosition2D::new(1, 2), // bottom
     ];
 
     for expected in expected_neighbors
@@ -71,46 +71,46 @@ fn test_grid_position_orthogonal_neighbors()
 #[test]
 fn test_grid_position_distances()
 {
-    let pos1 = GridPosition2D::new_2d(0, 0);
-    let pos2 = GridPosition2D::new_2d(3, 4);
+    let pos1 = GridPosition2D::new(0, 0);
+    let pos2 = GridPosition2D::new(3, 4);
 
     // Test Manhattan distance using the trait method
     assert_eq!(pos1.manhattan_distance(&pos2), 7);
 
-    let pos3 = GridPosition2D::new_2d(1, 1);
+    let pos3 = GridPosition2D::new(1, 1);
     assert_eq!(pos1.manhattan_distance(&pos3), 2);
 }
 
 #[test]
 fn test_grid_bounds()
 {
-    let bounds = GridBounds2D::new_2d(0, 9, 0, 9);
+    let bounds = GridBounds2D::new(0, 9, 0, 9);
 
     assert_eq!(bounds.width(), 10);
     assert_eq!(bounds.height(), 10);
     assert_eq!(bounds.total_cells(), 100);
 
-    assert!(bounds.contains(&GridPosition2D::new_2d(0, 0)));
-    assert!(bounds.contains(&GridPosition2D::new_2d(9, 9)));
-    assert!(bounds.contains(&GridPosition2D::new_2d(5, 5)));
+    assert!(bounds.contains(&GridPosition2D::new(0, 0)));
+    assert!(bounds.contains(&GridPosition2D::new(9, 9)));
+    assert!(bounds.contains(&GridPosition2D::new(5, 5)));
 
-    assert!(!bounds.contains(&GridPosition2D::new_2d(-1, 0)));
-    assert!(!bounds.contains(&GridPosition2D::new_2d(0, -1)));
-    assert!(!bounds.contains(&GridPosition2D::new_2d(10, 5)));
-    assert!(!bounds.contains(&GridPosition2D::new_2d(5, 10)));
+    assert!(!bounds.contains(&GridPosition2D::new(-1, 0)));
+    assert!(!bounds.contains(&GridPosition2D::new(0, -1)));
+    assert!(!bounds.contains(&GridPosition2D::new(10, 5)));
+    assert!(!bounds.contains(&GridPosition2D::new(5, 10)));
 }
 
 #[test]
 fn test_spatial_grid_plugin_integration()
 {
-    let _bounds = GridBounds2D::new_2d(0, 2, 0, 2);
+    let _bounds = GridBounds2D::new(0, 2, 0, 2);
 
     let builder = SimulationBuilder::new()
         .add_entity_spawner(|spawner| {
             // Spawn entities with grid positions
-            spawner.spawn((GridPosition2D::new_2d(0, 0), TestEntity(1)));
-            spawner.spawn((GridPosition2D::new_2d(1, 1), TestEntity(2)));
-            spawner.spawn((GridPosition2D::new_2d(2, 2), TestEntity(3)));
+            spawner.spawn((GridPosition2D::new(0, 0), TestEntity(1)));
+            spawner.spawn((GridPosition2D::new(1, 1), TestEntity(2)));
+            spawner.spawn((GridPosition2D::new(2, 2), TestEntity(3)));
         })
         .add_systems(|query: Query<(&GridPosition2D, &TestEntity)>| {
             // Verify entities have grid positions and test data
@@ -133,7 +133,7 @@ fn test_spatial_grid_plugin_integration()
 #[test]
 fn test_3d_grid_position_neighbors()
 {
-    let pos = GridPosition3D::new_3d(1, 1, 1);
+    let pos = GridPosition3D::new(1, 1, 1);
 
     let neighbors: Vec<GridPosition3D> = pos.neighbors().collect();
     assert_eq!(neighbors.len(), 26); // 3x3x3 cube minus center = 26 neighbors
@@ -142,10 +142,10 @@ fn test_3d_grid_position_neighbors()
     assert!(!neighbors.contains(&pos));
 
     // Check some specific 3D neighbors
-    assert!(neighbors.contains(&GridPosition3D::new_3d(0, 0, 0))); // corner
-    assert!(neighbors.contains(&GridPosition3D::new_3d(2, 2, 2))); // opposite corner
-    assert!(neighbors.contains(&GridPosition3D::new_3d(1, 1, 0))); // directly below
-    assert!(neighbors.contains(&GridPosition3D::new_3d(1, 1, 2))); // directly above
+    assert!(neighbors.contains(&GridPosition3D::new(0, 0, 0))); // corner
+    assert!(neighbors.contains(&GridPosition3D::new(2, 2, 2))); // opposite corner
+    assert!(neighbors.contains(&GridPosition3D::new(1, 1, 0))); // directly below
+    assert!(neighbors.contains(&GridPosition3D::new(1, 1, 2))); // directly above
 }
 
 #[test]
