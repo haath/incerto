@@ -32,6 +32,7 @@ where
     O: Send + Sync + 'static,
     F: QueryFilter + Send + Sync + 'static,
 {
+    #[must_use]
     pub const fn new(sample_interval: usize) -> Self
     {
         Self {
@@ -62,7 +63,7 @@ where
     )
     {
         // only get new samples once every 'sample_interval' steps
-        if step_counter.is_multiple_of(time_series.sample_interval)
+        if (**step_counter).is_multiple_of(time_series.sample_interval)
         {
             let component_values = query.iter().collect::<Vec<_>>();
 
