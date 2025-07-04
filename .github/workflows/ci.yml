@@ -1,4 +1,4 @@
-name: Build & Test
+name: Default
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           components: rustfmt
 
       - name: Check format
-        run: cargo +nightly fmt -- --check
+        run: cargo fmt -- --check
 
   lint:
     name: Check lint and docs
@@ -37,12 +37,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
           components: clippy
 
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --tests --examples -- -D warnings
 
       - name: Run cargo doc
         run: cargo doc --no-deps
@@ -58,7 +58,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - name: Install dependencies
