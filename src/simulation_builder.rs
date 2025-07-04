@@ -7,7 +7,7 @@ use bevy::{
 use crate::{
     Sample, SimulationBuildError,
     plugins::{
-        GridBounds, GridCoordinate, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
+        GridBounds, GridCoordinates, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
         TimeSeriesPlugin,
     },
     simulation::Simulation,
@@ -104,7 +104,7 @@ impl SimulationBuilder
     ///     .build();
     /// ```
     #[must_use]
-    pub fn add_spatial_grid<T: GridCoordinate, C: Component>(
+    pub fn add_spatial_grid<T: GridCoordinates, C: Component>(
         mut self,
         bounds: GridBounds<T>,
     ) -> Self

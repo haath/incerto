@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use bevy::{
     ecs::entity::EntityHashMap,
     platform::collections::{HashMap, HashSet},
@@ -5,10 +7,6 @@ use bevy::{
 };
 
 use crate::plugins::step_counter::StepCounter;
-
-/// Marker component to identify spatial grid entities.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct SpatialGridEntity;
 
 // Direction constants for 2D grid movement
 const NORTH: IVec2 = IVec2::new(0, -1);
@@ -28,167 +26,54 @@ const SOUTH_3D: IVec3 = IVec3::new(0, 1, 0);
 const EAST_3D: IVec3 = IVec3::new(1, 0, 0);
 const WEST_3D: IVec3 = IVec3::new(-1, 0, 0);
 
-/// Sealed trait for grid coordinate types that can be used with the spatial grid system.
-///
-/// This trait abstracts over 2D and 3D coordinate types, allowing the same spatial grid
-/// implementation to work with both `IVec2` and `IVec3` coordinates.
-pub trait GridCoordinate:
-    Copy
-    + Clone
-    + PartialEq
-    + Eq
-    + std::hash::Hash
-    + std::fmt::Debug
-    + Send
-    + Sync
-    + 'static
-    + private::Sealed
+/// A sealed trait for coordinates on a grid.
+/// Will be implemented for [`IVec2`] and [`IVec3`].
+pub trait GridCoordinates:
+    private::Sealed + Clone + Copy + Hash + PartialEq + Eq + Send + Sync + 'static
 {
-    /// The bounds type for this coordinate system (e.g., `IRect` for 2D, custom bounds for 3D).
-    type Bounds: Copy + Clone + PartialEq + Eq + std::fmt::Debug + Send + Sync + 'static;
+    fn neighbors(&self) -> impl Iterator<Item = Self>;
 
-    /// Create a new coordinate from individual components.
-    /// For 2D: new(x, y), for 3D: new(x, y, z)
-    fn new(x: i32, y: i32, z: i32) -> Self;
+    fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>;
 
-    /// Get the x coordinate.
-    fn x(self) -> i32;
-
-    /// Get the y coordinate.
-    fn y(self) -> i32;
-
-    /// Get the z coordinate (returns 0 for 2D coordinates).
-    fn z(self) -> i32;
-
-    /// Calculate Manhattan distance between two coordinates.
-    fn manhattan_distance(self, other: Self) -> u32;
-
-    /// Get all neighboring coordinates (Moore neighborhood).
-    fn neighbors(self) -> Box<dyn Iterator<Item = Self>>;
-
-    /// Get orthogonal neighboring coordinates (Von Neumann neighborhood).
-    fn neighbors_orthogonal(self) -> Box<dyn Iterator<Item = Self>>;
-
-    /// Create bounds from min/max coordinates.
-    fn create_bounds(min: Self, max: Self) -> Self::Bounds;
-
-    /// Check if this coordinate is within the given bounds.
-    fn within_bounds(self, bounds: &Self::Bounds) -> bool;
+    fn in_bounds(&self, bounds: &GridBounds<Self>) -> bool;
 }
 
-/// Private module to enforce the sealed trait pattern.
-mod private
-{
-    pub trait Sealed {}
-    impl Sealed for bevy::prelude::IVec2 {}
-    impl Sealed for bevy::prelude::IVec3 {}
-}
-
-/// 2D bounds type.
+/// Describes the bounds of a grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Bounds2D(pub IRect);
-
-/// 3D bounds type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Bounds3D
+pub struct GridBounds<T: GridCoordinates>
 {
-    pub min: IVec3,
-    pub max: IVec3,
+    pub min: T,
+    pub max: T,
 }
 
-impl GridCoordinate for IVec2
+impl GridCoordinates for IVec2
 {
-    type Bounds = Bounds2D;
-
-    fn new(x: i32, y: i32, _z: i32) -> Self
-    {
-        Self::new(x, y)
-    }
-
-    fn x(self) -> i32
-    {
-        self.x
-    }
-
-    fn y(self) -> i32
-    {
-        self.y
-    }
-
-    fn z(self) -> i32
-    {
-        0
-    }
-
-    fn manhattan_distance(self, other: Self) -> u32
-    {
-        #[allow(clippy::cast_sign_loss)]
-        {
-            (self - other).abs().element_sum() as u32
-        }
-    }
-
-    fn neighbors(self) -> Box<dyn Iterator<Item = Self>>
+    fn neighbors(&self) -> impl Iterator<Item = Self>
     {
         const DIRECTIONS: [IVec2; 8] = [
             NORTH_WEST, NORTH, NORTH_EAST, WEST, EAST, SOUTH_WEST, SOUTH, SOUTH_EAST,
         ];
-        Box::new(DIRECTIONS.into_iter().map(move |dir| self + dir))
+        DIRECTIONS.into_iter().map(move |dir| self + dir)
     }
 
-    fn neighbors_orthogonal(self) -> Box<dyn Iterator<Item = Self>>
+    fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
     {
         const DIRECTIONS: [IVec2; 4] = [NORTH, WEST, EAST, SOUTH];
-        Box::new(DIRECTIONS.into_iter().map(move |dir| self + dir))
+        DIRECTIONS.into_iter().map(move |dir| self + dir)
     }
 
-    fn create_bounds(min: Self, max: Self) -> Self::Bounds
+    fn in_bounds(&self, bounds: &GridBounds<Self>) -> bool
     {
-        Bounds2D(IRect::new(min.x, min.y, max.x, max.y))
-    }
-
-    fn within_bounds(self, bounds: &Self::Bounds) -> bool
-    {
-        bounds.0.contains(self)
+        bounds.contains(self)
     }
 }
 
-impl GridCoordinate for IVec3
+impl GridCoordinates for IVec3
 {
-    type Bounds = Bounds3D;
-
-    fn new(x: i32, y: i32, z: i32) -> Self
-    {
-        Self::new(x, y, z)
-    }
-
-    fn x(self) -> i32
-    {
-        self.x
-    }
-
-    fn y(self) -> i32
-    {
-        self.y
-    }
-
-    fn z(self) -> i32
-    {
-        self.z
-    }
-
-    fn manhattan_distance(self, other: Self) -> u32
-    {
-        #[allow(clippy::cast_sign_loss)]
-        {
-            (self - other).abs().element_sum() as u32
-        }
-    }
-
-    fn neighbors(self) -> Box<dyn Iterator<Item = Self>>
+    fn neighbors(&self) -> impl Iterator<Item = Self>
     {
         // 26 neighbors in 3D (3x3x3 cube minus center)
-        Box::new((-1..=1).flat_map(move |dx| {
+        (-1..=1).flat_map(move |dx| {
             (-1..=1).flat_map(move |dy| {
                 (-1..=1).filter_map(move |dz| {
                     if dx == 0 && dy == 0 && dz == 0
@@ -201,94 +86,45 @@ impl GridCoordinate for IVec3
                     }
                 })
             })
-        }))
+        })
     }
 
-    fn neighbors_orthogonal(self) -> Box<dyn Iterator<Item = Self>>
+    fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
     {
         // 6 orthogonal neighbors in 3D
         const DIRECTIONS: [IVec3; 6] = [WEST_3D, EAST_3D, NORTH_3D, SOUTH_3D, DOWN, UP];
-        Box::new(DIRECTIONS.into_iter().map(move |dir| self + dir))
+        DIRECTIONS.into_iter().map(move |dir| self + dir)
     }
 
-    fn create_bounds(min: Self, max: Self) -> Self::Bounds
+    fn in_bounds(&self, bounds: &GridBounds<Self>) -> bool
     {
-        Bounds3D { min, max }
-    }
-
-    fn within_bounds(self, bounds: &Self::Bounds) -> bool
-    {
-        self.x >= bounds.min.x
-            && self.x <= bounds.max.x
-            && self.y >= bounds.min.y
-            && self.y <= bounds.max.y
-            && self.z >= bounds.min.z
-            && self.z <= bounds.max.z
+        bounds.contains(self)
     }
 }
 
 /// Component representing a position in the spatial grid.
 /// Generic over coordinate types that implement the `GridCoordinate` trait.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
-pub struct GridPosition<T: GridCoordinate>(pub T);
-
-impl<T: GridCoordinate> GridPosition<T>
-{
-    /// Get the x coordinate.
-    #[must_use]
-    pub fn x(&self) -> i32
-    {
-        self.0.x()
-    }
-
-    /// Get the y coordinate.
-    #[must_use]
-    pub fn y(&self) -> i32
-    {
-        self.0.y()
-    }
-
-    /// Get the z coordinate.
-    #[must_use]
-    pub fn z(&self) -> i32
-    {
-        self.0.z()
-    }
-
-    /// Get all neighboring positions (Moore neighborhood).
-    pub fn neighbors(&self) -> impl Iterator<Item = Self>
-    {
-        let neighbors = self.0.neighbors();
-        // Convert Box<dyn Iterator> to a concrete type by collecting and iterating
-        let neighbors_vec: Vec<T> = neighbors.collect();
-        neighbors_vec.into_iter().map(Self)
-    }
-
-    /// Get orthogonal neighboring positions (Von Neumann neighborhood).
-    pub fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
-    {
-        let neighbors = self.0.neighbors_orthogonal();
-        // Convert Box<dyn Iterator> to a concrete type by collecting and iterating
-        let neighbors_vec: Vec<T> = neighbors.collect();
-        neighbors_vec.into_iter().map(Self)
-    }
-
-    /// Calculate Manhattan distance to another position.
-    #[must_use]
-    pub fn manhattan_distance(&self, other: &Self) -> u32
-    {
-        self.0.manhattan_distance(other.0)
-    }
-}
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GridPosition<T: GridCoordinates + private::Sealed>(pub T);
 
 // Convenience methods for 2D positions
 impl GridPosition<IVec2>
 {
     /// Create a new 2D grid position from x, y coordinates.
     #[must_use]
-    pub const fn new_2d(x: i32, y: i32) -> Self
+    pub const fn new(x: i32, y: i32) -> Self
     {
         Self(IVec2::new(x, y))
+    }
+
+    pub fn neighbors(&self) -> impl Iterator<Item = Self>
+    {
+        self.0.neighbors().map(Self)
+    }
+
+    pub fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
+    {
+        self.0.neighbors_orthogonal().map(Self)
     }
 }
 
@@ -297,16 +133,26 @@ impl GridPosition<IVec3>
 {
     /// Create a new 3D grid position from x, y, z coordinates.
     #[must_use]
-    pub const fn new_3d(x: i32, y: i32, z: i32) -> Self
+    pub const fn new(x: i32, y: i32, z: i32) -> Self
     {
         Self(IVec3::new(x, y, z))
+    }
+
+    pub fn neighbors(&self) -> impl Iterator<Item = Self>
+    {
+        self.0.neighbors().map(Self)
+    }
+
+    pub fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
+    {
+        self.0.neighbors_orthogonal().map(Self)
     }
 }
 
 /// Component that maintains a spatial index for efficient neighbor queries.
 /// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
-#[derive(Component)]
-pub struct SpatialGrid<T: GridCoordinate, C: Component>
+#[derive(Resource)]
+pub struct SpatialGrid<T: GridCoordinates, C: Component>
 {
     /// Maps grid positions to entities at those positions.
     position_to_entities: HashMap<GridPosition<T>, HashSet<Entity>>,
@@ -318,203 +164,29 @@ pub struct SpatialGrid<T: GridCoordinate, C: Component>
     _phantom: std::marker::PhantomData<C>,
 }
 
-/// Grid bounds representing the valid area for grid positions.
-/// Generic over coordinate types that implement the `GridCoordinate` trait.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GridBounds<T: GridCoordinate>(pub T::Bounds);
-
-impl<T: GridCoordinate> GridBounds<T>
-{
-    /// Create new bounds from min and max coordinates.
-    #[must_use]
-    pub fn new(min: GridPosition<T>, max: GridPosition<T>) -> Self
-    {
-        Self(T::create_bounds(min.0, max.0))
-    }
-
-    /// Check if a position is within these bounds.
-    #[must_use]
-    pub fn contains(&self, pos: &GridPosition<T>) -> bool
-    {
-        pos.0.within_bounds(&self.0)
-    }
-}
-
-// Specific implementations for 2D bounds
+/// Specific implementations for 2D bounds
 impl GridBounds<IVec2>
 {
-    /// Create 2D bounds from coordinate values.
+    /// Check if a position is within these bounds.
     #[must_use]
-    pub fn new_2d(min_x: i32, max_x: i32, min_y: i32, max_y: i32) -> Self
+    pub fn contains(&self, pos: &IVec2) -> bool
     {
-        Self(Bounds2D(IRect::new(min_x, min_y, max_x, max_y)))
-    }
-
-    /// Get the width in grid cells (number of columns).
-    #[must_use]
-    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
-    pub fn width(&self) -> u32
-    {
-        (self.0.0.width() + 1) as u32
-    }
-
-    /// Get the height in grid cells (number of rows).
-    #[must_use]
-    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
-    pub fn height(&self) -> u32
-    {
-        (self.0.0.height() + 1) as u32
-    }
-
-    /// Get the total number of grid cells.
-    #[must_use]
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn total_cells(&self) -> u32
-    {
-        self.width() * self.height()
-    }
-
-    /// Get the minimum x coordinate.
-    #[must_use]
-    pub const fn min_x(&self) -> i32
-    {
-        self.0.0.min.x
-    }
-
-    /// Get the maximum x coordinate.
-    #[must_use]
-    pub const fn max_x(&self) -> i32
-    {
-        self.0.0.max.x
-    }
-
-    /// Get the minimum y coordinate.
-    #[must_use]
-    pub const fn min_y(&self) -> i32
-    {
-        self.0.0.min.y
-    }
-
-    /// Get the maximum y coordinate.
-    #[must_use]
-    pub const fn max_y(&self) -> i32
-    {
-        self.0.0.max.y
+        todo!()
     }
 }
 
-// Specific implementations for 3D bounds
+/// Specific implementations for 3D bounds
 impl GridBounds<IVec3>
 {
-    /// Create 3D bounds from coordinate values.
+    /// Check if a position is within these bounds.
     #[must_use]
-    pub const fn new_3d(
-        min_x: i32,
-        max_x: i32,
-        min_y: i32,
-        max_y: i32,
-        min_z: i32,
-        max_z: i32,
-    ) -> Self
+    pub fn contains(&self, pos: &IVec3) -> bool
     {
-        Self(Bounds3D {
-            min: IVec3::new(min_x, min_y, min_z),
-            max: IVec3::new(max_x, max_y, max_z),
-        })
-    }
-
-    /// Get the width in grid cells (number of columns).
-    #[must_use]
-    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
-    pub const fn width(&self) -> u32
-    {
-        (self.0.max.x - self.0.min.x + 1) as u32
-    }
-
-    /// Get the height in grid cells (number of rows).
-    #[must_use]
-    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
-    pub const fn height(&self) -> u32
-    {
-        (self.0.max.y - self.0.min.y + 1) as u32
-    }
-
-    /// Get the depth in grid cells (number of layers).
-    #[must_use]
-    #[allow(clippy::cast_sign_loss)] // Safe: assumes well-formed bounds
-    pub const fn depth(&self) -> u32
-    {
-        (self.0.max.z - self.0.min.z + 1) as u32
-    }
-
-    /// Get the total number of grid cells.
-    #[must_use]
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn total_cells(&self) -> u32
-    {
-        self.width() * self.height() * self.depth()
-    }
-
-    /// Get the minimum x coordinate.
-    #[must_use]
-    pub const fn min_x(&self) -> i32
-    {
-        self.0.min.x
-    }
-
-    /// Get the maximum x coordinate.
-    #[must_use]
-    pub const fn max_x(&self) -> i32
-    {
-        self.0.max.x
-    }
-
-    /// Get the minimum y coordinate.
-    #[must_use]
-    pub const fn min_y(&self) -> i32
-    {
-        self.0.min.y
-    }
-
-    /// Get the maximum y coordinate.
-    #[must_use]
-    pub const fn max_y(&self) -> i32
-    {
-        self.0.max.y
-    }
-
-    /// Get the minimum z coordinate.
-    #[must_use]
-    pub const fn min_z(&self) -> i32
-    {
-        self.0.min.z
-    }
-
-    /// Get the maximum z coordinate.
-    #[must_use]
-    pub const fn max_z(&self) -> i32
-    {
-        self.0.max.z
+        todo!()
     }
 }
 
-impl From<IRect> for GridBounds<IVec2>
-{
-    fn from(rect: IRect) -> Self
-    {
-        Self(Bounds2D(rect))
-    }
-}
-
-impl From<GridBounds<IVec2>> for IRect
-{
-    fn from(bounds: GridBounds<IVec2>) -> Self
-    {
-        bounds.0.0
-    }
-}
-
-impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
+impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
 {
     #[must_use]
     pub fn new(bounds: Option<GridBounds<T>>) -> Self
@@ -525,11 +197,6 @@ impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
             bounds,
             _phantom: std::marker::PhantomData,
         }
-    }
-
-    pub const fn set_bounds(&mut self, bounds: GridBounds<T>)
-    {
-        self.bounds = Some(bounds);
     }
 
     #[must_use]
@@ -590,18 +257,17 @@ impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
     }
 
     /// Get all entities in the neighborhood of a position (Moore neighborhood).
-    pub fn neighbors_of<'a>(
-        &'a self,
-        position: &'a GridPosition<T>,
-    ) -> impl Iterator<Item = Entity> + 'a
+    pub fn neighbors_of(&self, position: &GridPosition<T>) -> impl Iterator<Item = Entity>
     {
         position
+            .0
             .neighbors()
-            .filter(move |neighbor_pos| {
+            .filter(|neighbor_pos| {
                 self.bounds
-                    .is_none_or(|bounds| bounds.contains(neighbor_pos))
+                    .is_none_or(|bounds| neighbor_pos.in_bounds(&bounds))
             })
-            .flat_map(move |neighbor_pos| {
+            .map(|p| GridPosition(p))
+            .flat_map(|neighbor_pos| {
                 self.position_to_entities
                     .get(&neighbor_pos)
                     .into_iter()
@@ -610,18 +276,20 @@ impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
     }
 
     /// Get all entities in the orthogonal neighborhood of a position (Von Neumann neighborhood).
-    pub fn orthogonal_neighbors_of<'a>(
-        &'a self,
-        position: &'a GridPosition<T>,
-    ) -> impl Iterator<Item = Entity> + 'a
+    pub fn orthogonal_neighbors_of(
+        &self,
+        position: &GridPosition<T>,
+    ) -> impl Iterator<Item = Entity>
     {
         position
+            .0
             .neighbors_orthogonal()
-            .filter(move |neighbor_pos| {
+            .filter(|neighbor_pos| {
                 self.bounds
-                    .is_none_or(|bounds| bounds.contains(neighbor_pos))
+                    .is_none_or(|bounds| neighbor_pos.in_bounds(&bounds))
             })
-            .flat_map(move |neighbor_pos| {
+            .map(|p| GridPosition(p))
+            .flat_map(|neighbor_pos| {
                 self.position_to_entities
                     .get(&neighbor_pos)
                     .into_iter()
@@ -655,13 +323,13 @@ impl<T: GridCoordinate, C: Component> SpatialGrid<T, C>
 
 /// Plugin that maintains a spatial index for entities with `GridPosition` components.
 /// Generic over coordinate types that implement the `GridCoordinate` trait and component types.
-pub struct SpatialGridPlugin<T: GridCoordinate, C: Component>
+pub struct SpatialGridPlugin<T: GridCoordinates, C: Component>
 {
     bounds: Option<GridBounds<T>>,
     _phantom: std::marker::PhantomData<(T, C)>,
 }
 
-impl<T: GridCoordinate, C: Component> SpatialGridPlugin<T, C>
+impl<T: GridCoordinates, C: Component> SpatialGridPlugin<T, C>
 {
     pub const fn new(bounds: Option<GridBounds<T>>) -> Self
     {
@@ -675,11 +343,11 @@ impl<T: GridCoordinate, C: Component> SpatialGridPlugin<T, C>
     {
         // Spawn the spatial grid entity directly
         let spatial_grid = SpatialGrid::<T, C>::new(bounds);
-        app.world_mut().spawn((spatial_grid, SpatialGridEntity));
+        app.world_mut().insert_resource(spatial_grid);
     }
 }
 
-impl<T: GridCoordinate, C: Component> Plugin for SpatialGridPlugin<T, C>
+impl<T: GridCoordinates, C: Component> Plugin for SpatialGridPlugin<T, C>
 {
     fn build(&self, app: &mut App)
     {
@@ -699,31 +367,16 @@ impl<T: GridCoordinate, C: Component> Plugin for SpatialGridPlugin<T, C>
 }
 
 /// System that resets the spatial grid at the beginning of each simulation.
-pub fn spatial_grid_reset_system<T: GridCoordinate, C: Component>(
-    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
+pub fn spatial_grid_reset_system<T: GridCoordinates, C: Component>(
+    mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     step_counter: Res<StepCounter>,
-    mut commands: Commands,
 )
 {
     // Reset the spatial grid whenever the step counter is 0
     // This should occur on the first step of every simulation
     if **step_counter == 0
     {
-        if spatial_grids.is_empty()
-        {
-            // If no spatial grid entity exists, create one
-            // This handles the case where reset() cleared all entities
-            // TODO: Feels hacky
-            let spatial_grid = SpatialGrid::<T, C>::new(None);
-            commands.spawn((spatial_grid, SpatialGridEntity));
-        }
-        else
-        {
-            for mut spatial_grid in &mut spatial_grids
-            {
-                spatial_grid.clear();
-            }
-        }
+        spatial_grid.clear();
     }
 }
 
@@ -732,32 +385,27 @@ type GridPositionQuery<'world, 'state, T, C> =
     Query<'world, 'state, (Entity, &'static GridPosition<T>), (Changed<GridPosition<T>>, With<C>)>;
 
 /// System that updates the spatial grid when entities with `GridPosition` are added or moved.
-pub fn spatial_grid_update_system<T: GridCoordinate, C: Component>(
-    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
+pub fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
+    mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     query: GridPositionQuery<T, C>,
 )
 {
-    if let Ok(mut spatial_grid) = spatial_grids.single_mut()
+    for (entity, position) in &query
     {
-        for (entity, position) in &query
-        {
-            spatial_grid.insert(entity, *position);
-        }
+        spatial_grid.remove(entity);
+        spatial_grid.insert(entity, *position);
     }
 }
 
 /// System that removes entities from the spatial grid when they no longer have `GridPosition`.
-pub fn spatial_grid_cleanup_system<T: GridCoordinate, C: Component>(
-    mut spatial_grids: Query<&mut SpatialGrid<T, C>, With<SpatialGridEntity>>,
+pub fn spatial_grid_cleanup_system<T: GridCoordinates, C: Component>(
+    mut spatial_grid: ResMut<SpatialGrid<T, C>>,
     mut removed: RemovedComponents<GridPosition<T>>,
 )
 {
-    if let Ok(mut spatial_grid) = spatial_grids.single_mut()
+    for entity in removed.read()
     {
-        for entity in removed.read()
-        {
-            spatial_grid.remove(entity);
-        }
+        spatial_grid.remove(entity);
     }
 }
 
@@ -780,8 +428,10 @@ pub type GridBounds2D = GridBounds<IVec2>;
 /// 3D grid bounds using custom `Bounds3D`.
 pub type GridBounds3D = GridBounds<IVec3>;
 
-/// 2D spatial grid plugin.
-pub type SpatialGridPlugin2D<C> = SpatialGridPlugin<IVec2, C>;
-
-/// 3D spatial grid plugin.
-pub type SpatialGridPlugin3D<C> = SpatialGridPlugin<IVec3, C>;
+/// Private module to enforce the sealed trait pattern.
+mod private
+{
+    pub trait Sealed {}
+    impl Sealed for bevy::prelude::IVec2 {}
+    impl Sealed for bevy::prelude::IVec3 {}
+}
