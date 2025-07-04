@@ -126,6 +126,18 @@ impl GridPosition<IVec2>
     {
         self.0.neighbors_orthogonal().map(Self)
     }
+
+    #[must_use]
+    pub const fn x(&self) -> i32
+    {
+        self.0.x
+    }
+
+    #[must_use]
+    pub const fn y(&self) -> i32
+    {
+        self.0.y
+    }
 }
 
 // Convenience methods for 3D positions
@@ -146,6 +158,24 @@ impl GridPosition<IVec3>
     pub fn neighbors_orthogonal(&self) -> impl Iterator<Item = Self>
     {
         self.0.neighbors_orthogonal().map(Self)
+    }
+
+    #[must_use]
+    pub const fn x(&self) -> i32
+    {
+        self.0.x
+    }
+
+    #[must_use]
+    pub const fn y(&self) -> i32
+    {
+        self.0.y
+    }
+
+    #[must_use]
+    pub const fn z(&self) -> i32
+    {
+        self.0.z
     }
 }
 
@@ -168,10 +198,16 @@ pub struct SpatialGrid<T: GridCoordinates, C: Component>
 impl GridBounds<IVec2>
 {
     /// Check if a position is within these bounds.
+    ///
+    /// # Panics
+    ///
+    /// If [`Self::min`] is larger than [`Self::max`] along any axis.
     #[must_use]
     pub fn contains(&self, pos: &IVec2) -> bool
     {
-        todo!()
+        assert!(self.min.x <= self.max.x);
+        assert!(self.min.y <= self.max.y);
+        (pos.x >= self.min.x && pos.x <= self.max.x) && (pos.y >= self.min.y && pos.y <= self.max.y)
     }
 }
 
@@ -179,10 +215,19 @@ impl GridBounds<IVec2>
 impl GridBounds<IVec3>
 {
     /// Check if a position is within these bounds.
+    ///
+    /// # Panics
+    ///
+    /// If [`Self::min`] is larger than [`Self::max`] along any axis.
     #[must_use]
     pub fn contains(&self, pos: &IVec3) -> bool
     {
-        todo!()
+        assert!(self.min.x <= self.max.x);
+        assert!(self.min.y <= self.max.y);
+        assert!(self.min.z <= self.max.z);
+        (pos.x >= self.min.x && pos.x <= self.max.x)
+            && (pos.y >= self.min.y && pos.y <= self.max.y)
+            && (pos.z >= self.min.z && pos.z <= self.max.z)
     }
 }
 
