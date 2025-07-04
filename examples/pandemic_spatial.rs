@@ -23,7 +23,7 @@ use std::collections::HashSet;
 
 use bevy::prelude::IVec2;
 use incerto::{
-    plugins::{SpatialGrid, SpatialGridEntity},
+    plugins::{GridBounds2D, GridPosition2D, SpatialGrid},
     prelude::*,
 };
 use rand::prelude::*;
@@ -35,7 +35,7 @@ const GRID_SIZE: i32 = 40;
 
 // Disease parameters
 const CHANCE_START_INFECTED: f64 = 0.02;
-const INFECTION_RADIUS: u32 = 2; // Can infect within 2 cells distance
+const INFECTION_RADIUS: i32 = 2; // Can infect within 2 cells distance
 const CHANCE_INFECT_AT_DISTANCE_1: f64 = 0.15; // High chance at close distance
 const CHANCE_INFECT_AT_DISTANCE_2: f64 = 0.05; // Lower chance at farther distance
 const CHANCE_RECOVER: f64 = 0.03;
@@ -55,7 +55,7 @@ const CONTACT_QUARANTINE_DURATION: usize = 14;
 const QUARANTINE_ZONE_ENABLED: bool = true;
 const QUARANTINE_CENTER_X: i32 = GRID_SIZE / 2;
 const QUARANTINE_CENTER_Y: i32 = GRID_SIZE / 2;
-const QUARANTINE_RADIUS: u32 = 8;
+const QUARANTINE_RADIUS: i32 = 8;
 
 // Time series sampling
 const SAMPLE_INTERVAL: usize = 1;
@@ -167,7 +167,10 @@ fn main()
     );
     println!();
 
-    let bounds = GridBounds2D::new_2d(0, GRID_SIZE - 1, 0, GRID_SIZE - 1);
+    let bounds = GridBounds2D {
+        min: IVec2::new(0, 0),
+        max: IVec2::new(GRID_SIZE - 1, GRID_SIZE - 1),
+    };
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
         .add_spatial_grid::<IVec2, Person>(bounds)
@@ -277,7 +280,7 @@ fn spawn_population(spawner: &mut Spawner)
     for _ in 0..INITIAL_POPULATION
     {
         // Random position on the grid
-        let position = GridPosition2D::new_2d(
+        let position = GridPosition2D::new(
             rng.random_range(0..GRID_SIZE),
             rng.random_range(0..GRID_SIZE),
         );
@@ -309,15 +312,9 @@ fn spawn_population(spawner: &mut Spawner)
 /// Enhanced movement system with social distancing behavior
 fn people_move_with_social_distancing(
     mut query: Query<(&mut GridPosition2D, &Person, Option<&Quarantined>)>,
-    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
+    spatial_grid: Res<SpatialGrid<IVec2, Person>>,
 )
 {
-    let Ok(spatial_grid) = spatial_grids.single()
-    else
-    {
-        return; // Skip if spatial grid not found
-    };
-
     let mut rng = rand::rng();
 
     for (mut position, person, quarantined) in &mut query
@@ -336,10 +333,10 @@ fn people_move_with_social_distancing(
 
         // Get potential movement directions
         let directions = [
-            GridPosition2D::new_2d(position.x(), position.y() - 1), // up
-            GridPosition2D::new_2d(position.x() - 1, position.y()), // left
-            GridPosition2D::new_2d(position.x() + 1, position.y()), // right
-            GridPosition2D::new_2d(position.x(), position.y() + 1), // down
+            GridPosition2D::new(position.x(), position.y() - 1), // up
+            GridPosition2D::new(position.x() - 1, position.y()), // left
+            GridPosition2D::new(position.x() + 1, position.y()), // right
+            GridPosition2D::new(position.x(), position.y() + 1), // down
         ];
 
         let mut best_moves = Vec::new();
@@ -348,7 +345,10 @@ fn people_move_with_social_distancing(
         for new_pos in directions
         {
             // Check bounds
-            if new_pos.x < 0 || new_pos.x >= GRID_SIZE || new_pos.y < 0 || new_pos.y >= GRID_SIZE
+            if new_pos.x() < 0
+                || new_pos.x() >= GRID_SIZE
+                || new_pos.y() < 0
+                || new_pos.y() >= GRID_SIZE
             {
                 continue;
             }
@@ -357,8 +357,8 @@ fn people_move_with_social_distancing(
             if QUARANTINE_ZONE_ENABLED
             {
                 let quarantine_center =
-                    GridPosition2D::new_2d(QUARANTINE_CENTER_X, QUARANTINE_CENTER_Y);
-                if (*new_pos - *quarantine_center).abs().element_sum() as u32 <= QUARANTINE_RADIUS
+                    GridPosition2D::new(QUARANTINE_CENTER_X, QUARANTINE_CENTER_Y);
+                if (new_pos.0 - quarantine_center.0).abs().element_sum() <= QUARANTINE_RADIUS
                 {
                     // Only enter quarantine zone if not practicing social distancing
                     if person.social_distancing
@@ -431,16 +431,10 @@ fn disease_incubation_progression(mut query: Query<&mut Person>)
 
 /// Advanced spatial disease transmission system using infection radius
 fn spatial_disease_transmission(
-    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
+    spatial_grid: Res<SpatialGrid<IVec2, Person>>,
     mut query: Query<(Entity, &GridPosition2D, &mut Person), Without<Quarantined>>,
 )
 {
-    let Ok(spatial_grid) = spatial_grids.single()
-    else
-    {
-        return; // Skip if spatial grid not found
-    };
-
     let mut rng = rand::rng();
     let mut new_exposures = Vec::new();
 
@@ -463,18 +457,18 @@ fn spatial_disease_transmission(
     {
         // Get all people within infection radius using iterative approach
         let mut nearby_entities = Vec::new();
-        let infectious_coord = *infectious_pos;
+        let infectious_coord = infectious_pos.0;
 
         // Check all positions within Manhattan distance of INFECTION_RADIUS
-        for dx in -(INFECTION_RADIUS as i32)..=(INFECTION_RADIUS as i32)
+        for dx in -INFECTION_RADIUS..=INFECTION_RADIUS
         {
-            for dy in -(INFECTION_RADIUS as i32)..=(INFECTION_RADIUS as i32)
+            for dy in -INFECTION_RADIUS..=INFECTION_RADIUS
             {
                 let manhattan_distance = dx.abs() + dy.abs();
-                if manhattan_distance <= INFECTION_RADIUS as i32
+                if manhattan_distance <= INFECTION_RADIUS
                 {
                     let check_pos =
-                        GridPosition2D::new_2d(infectious_coord.x + dx, infectious_coord.y + dy);
+                        GridPosition2D::new(infectious_coord.x + dx, infectious_coord.y + dy);
                     nearby_entities.extend(spatial_grid.entities_at(&check_pos));
                 }
             }
@@ -493,7 +487,7 @@ fn spatial_disease_transmission(
                 if matches!(person.disease_state, DiseaseState::Healthy)
                 {
                     // Calculate infection probability based on distance
-                    let distance = (*infectious_pos - **susceptible_pos).abs().element_sum() as u32;
+                    let distance = (infectious_pos.0 - susceptible_pos.0).abs().element_sum();
                     let infection_chance = match distance
                     {
                         0 | 1 => CHANCE_INFECT_AT_DISTANCE_1, // Same cell or adjacent
@@ -567,7 +561,7 @@ fn update_contact_history(mut query: Query<(&GridPosition2D, &mut ContactHistory
 /// Process contact tracing when someone becomes infectious
 fn process_contact_tracing(
     mut commands: Commands,
-    spatial_grids: Query<&SpatialGrid<IVec2, Person>, With<SpatialGridEntity>>,
+    spatial_grid: Res<SpatialGrid<IVec2, Person>>,
     query_newly_infectious: Query<
         (Entity, &GridPosition2D, &ContactHistory),
         (With<Person>, Without<Quarantined>),
@@ -575,12 +569,6 @@ fn process_contact_tracing(
     query_potential_contacts: Query<Entity, (With<Person>, Without<Quarantined>)>,
 )
 {
-    let Ok(spatial_grid) = spatial_grids.single()
-    else
-    {
-        return; // Skip if spatial grid not found
-    };
-
     if !CONTACT_TRACING_ENABLED
     {
         return;

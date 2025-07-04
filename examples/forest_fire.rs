@@ -26,7 +26,7 @@ use std::collections::HashSet;
 
 use bevy::prelude::IVec2;
 use incerto::{
-    plugins::{SpatialGrid, SpatialGridEntity},
+    plugins::{GridBounds2D, GridPosition2D, SpatialGrid},
     prelude::*,
 };
 use rand::prelude::*;
@@ -152,7 +152,10 @@ fn main()
     println!();
 
     // Build the simulation
-    let bounds = GridBounds2D::new_2d(0, GRID_WIDTH - 1, 0, GRID_HEIGHT - 1);
+    let bounds = GridBounds2D {
+        min: IVec2::new(0, 0),
+        max: IVec2::new(GRID_WIDTH - 1, GRID_HEIGHT - 1),
+    };
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
         .add_spatial_grid::<IVec2, ForestCell>(bounds)
@@ -237,7 +240,7 @@ fn spawn_forest_grid(spawner: &mut Spawner)
     {
         for y in 0..GRID_HEIGHT
         {
-            let position = GridPosition2D::new_2d(x, y);
+            let position = GridPosition2D::new(x, y);
 
             // Determine initial state
             let state = if rng.random_bool(INITIAL_FOREST_DENSITY)
@@ -256,7 +259,7 @@ fn spawn_forest_grid(spawner: &mut Spawner)
 
     // Start some initial fires at random locations
     let healthy_positions: Vec<GridPosition2D> = (0..GRID_WIDTH)
-        .flat_map(|x| (0..GRID_HEIGHT).map(move |y| GridPosition2D::new_2d(x, y)))
+        .flat_map(|x| (0..GRID_HEIGHT).map(move |y| GridPosition2D::new(x, y)))
         .collect();
 
     // This is a simplified approach - in a real implementation you'd query existing entities
@@ -277,17 +280,11 @@ fn spawn_forest_grid(spawner: &mut Spawner)
 
 /// System that handles fire spreading to neighboring cells using the spatial grid.
 fn fire_spread_system(
-    spatial_grids: Query<&SpatialGrid<IVec2, ForestCell>, With<SpatialGridEntity>>,
+    spatial_grid: Res<SpatialGrid<IVec2, ForestCell>>,
     query_burning: Query<(Entity, &GridPosition2D), With<ForestCell>>,
     mut query_cells: Query<(&GridPosition2D, &mut ForestCell)>,
 )
 {
-    let Ok(spatial_grid) = spatial_grids.single()
-    else
-    {
-        return; // Skip if spatial grid not found
-    };
-
     let mut rng = rand::rng();
     let mut spread_positions = HashSet::new();
 

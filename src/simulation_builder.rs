@@ -97,7 +97,10 @@ impl SimulationBuilder
     /// #[derive(Component)]
     /// struct Vehicle;
     ///
-    /// let bounds = GridBounds2D::new_2d(0, 99, 0, 99);
+    /// let bounds = GridBounds2D {
+    ///     min: IVec2::new(0, 0),
+    ///     max: IVec2::new(99, 99),
+    /// };
     /// let simulation = SimulationBuilder::new()
     ///     .add_spatial_grid::<IVec2, Person>(bounds)
     ///     .add_spatial_grid::<IVec2, Vehicle>(bounds)

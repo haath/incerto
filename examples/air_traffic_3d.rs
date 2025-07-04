@@ -3,6 +3,10 @@
 //! This example demonstrates 3D spatial grid functionality with aircraft moving
 //! through different altitude levels in a simple airspace.
 
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::expect_used)]
+
 use bevy::prelude::*;
 use incerto::{
     plugins::{GridBounds3D, GridPosition3D, SpatialGrid3D},
@@ -20,7 +24,7 @@ const NUM_AIRCRAFT: usize = 15;
 #[derive(Component, Debug)]
 pub struct Aircraft
 {
-    pub id: u32,
+    pub id: usize,
     pub aircraft_type: AircraftType,
     pub target_altitude: i32,
     pub speed: i32, // cells per step
@@ -77,7 +81,7 @@ fn spawn_aircraft(spawner: &mut Spawner)
         let target_altitude = rng.random_range(0..AIRSPACE_HEIGHT);
 
         let aircraft = Aircraft {
-            id: i as u32,
+            id: i,
             aircraft_type,
             target_altitude,
             speed: 1,
@@ -135,22 +139,20 @@ fn check_conflicts(
         for nearby_entity in nearby_aircraft
         {
             if nearby_entity != entity
+                && let Ok((_, nearby_pos, nearby_aircraft)) = query.get(nearby_entity)
             {
-                if let Ok((_, nearby_pos, nearby_aircraft)) = query.get(nearby_entity)
+                let distance = (position.0 - nearby_pos.0).length_squared();
+                if distance <= 1
                 {
-                    let distance = (position.0 - nearby_pos.0).length_squared();
-                    if distance <= 1
-                    {
-                        conflicts += 1;
-                        println!(
-                            "⚠️  CONFLICT: Aircraft {} {} and {} {} too close at distance {}",
-                            aircraft.id,
-                            aircraft.aircraft_type.symbol(),
-                            nearby_aircraft.id,
-                            nearby_aircraft.aircraft_type.symbol(),
-                            distance
-                        );
-                    }
+                    conflicts += 1;
+                    println!(
+                        "⚠️  CONFLICT: Aircraft {} {} and {} {} too close at distance {}",
+                        aircraft.id,
+                        aircraft.aircraft_type.symbol(),
+                        nearby_aircraft.id,
+                        nearby_aircraft.aircraft_type.symbol(),
+                        distance
+                    );
                 }
             }
         }
@@ -177,16 +179,17 @@ fn display_airspace(query: Query<(&GridPosition3D, &Aircraft)>)
         aircraft_positions.push((position, aircraft));
     }
 
-    for (altitude, count) in altitude_counts.iter().enumerate()
+    for altitude in 0..AIRSPACE_HEIGHT
     {
-        if *count > 0
+        let count = altitude_counts[altitude as usize];
+        if count > 0
         {
-            print!("   FL{:02}: {} aircraft ", altitude, count);
+            print!("   FL{altitude:02}: {count} aircraft ");
 
             // Show aircraft at this altitude
             for (pos, aircraft) in &aircraft_positions
             {
-                if pos.z() == altitude as i32
+                if pos.z() == altitude
                 {
                     print!("{} ", aircraft.aircraft_type.symbol());
                 }
@@ -195,21 +198,15 @@ fn display_airspace(query: Query<(&GridPosition3D, &Aircraft)>)
         }
     }
 
-    println!(
-        "   Airspace: {}x{}x{} cells",
-        AIRSPACE_SIZE, AIRSPACE_SIZE, AIRSPACE_HEIGHT
-    );
+    println!("   Airspace: {AIRSPACE_SIZE}x{AIRSPACE_SIZE}x{AIRSPACE_HEIGHT} cells");
 }
 
 fn main()
 {
     println!("✈️ 3D Air Traffic Control Simulation");
-    println!(
-        "Airspace: {}x{}x{} cells",
-        AIRSPACE_SIZE, AIRSPACE_SIZE, AIRSPACE_HEIGHT
-    );
-    println!("Aircraft: {}", NUM_AIRCRAFT);
-    println!("Duration: {} steps\n", SIMULATION_STEPS);
+    println!("Airspace: {AIRSPACE_SIZE}x{AIRSPACE_SIZE}x{AIRSPACE_HEIGHT} cells");
+    println!("Aircraft: {NUM_AIRCRAFT}");
+    println!("Duration: {SIMULATION_STEPS} steps\n");
 
     // Create 3D airspace bounds
     let bounds = GridBounds3D {
@@ -226,13 +223,15 @@ fn main()
     // Run simulation
     for step in 1..=SIMULATION_STEPS
     {
-        println!("🕐 Step {}/{}", step, SIMULATION_STEPS);
+        println!("🕐 Step {step}/{SIMULATION_STEPS}");
         simulation.run(1);
 
-        if step % 10 == 0
+        if step.is_multiple_of(10)
         {
-            let aircraft_count = simulation.sample::<Aircraft, usize>().unwrap();
-            println!("   📊 Total aircraft tracked: {}", aircraft_count);
+            let aircraft_count = simulation
+                .sample::<Aircraft, usize>()
+                .expect("Failed to sample aircraft count");
+            println!("   📊 Total aircraft tracked: {aircraft_count}");
         }
 
         // Add small delay for readability
@@ -241,6 +240,8 @@ fn main()
 
     println!("\n✅ Air Traffic Control simulation completed!");
 
-    let final_count = simulation.sample::<Aircraft, usize>().unwrap();
-    println!("📈 Final aircraft count: {}", final_count);
+    let final_count = simulation
+        .sample::<Aircraft, usize>()
+        .expect("Failed to sample final aircraft count");
+    println!("📈 Final aircraft count: {final_count}");
 }

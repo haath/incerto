@@ -4,14 +4,9 @@
 
 use bevy::prelude::{IVec2, IVec3};
 use incerto::{
-    plugins::{
-        GridBounds2D, GridBounds3D, GridPosition2D, GridPosition3D, SpatialGrid, SpatialGridEntity,
-    },
+    plugins::{GridBounds2D, GridBounds3D, GridPosition2D, GridPosition3D, SpatialGrid},
     prelude::*,
 };
-
-#[derive(Component)]
-struct TestEntity(i32);
 
 #[test]
 fn test_grid_position_neighbors()
@@ -74,60 +69,31 @@ fn test_grid_position_distances()
     let pos1 = GridPosition2D::new(0, 0);
     let pos2 = GridPosition2D::new(3, 4);
 
-    // Test Manhattan distance using the trait method
-    assert_eq!(pos1.manhattan_distance(&pos2), 7);
+    // Test Manhattan distance
+    let diff = pos2.0 - pos1.0;
+    assert_eq!(diff.abs().element_sum(), 7);
 
     let pos3 = GridPosition2D::new(1, 1);
-    assert_eq!(pos1.manhattan_distance(&pos3), 2);
+    let diff2 = pos3.0 - pos1.0;
+    assert_eq!(diff2.abs().element_sum(), 2);
 }
 
 #[test]
 fn test_grid_bounds()
 {
-    let bounds = GridBounds2D::new(0, 9, 0, 9);
+    let bounds = GridBounds2D {
+        min: IVec2::new(0, 0),
+        max: IVec2::new(9, 9),
+    };
 
-    assert_eq!(bounds.width(), 10);
-    assert_eq!(bounds.height(), 10);
-    assert_eq!(bounds.total_cells(), 100);
+    assert!(bounds.contains(&GridPosition2D::new(0, 0).0));
+    assert!(bounds.contains(&GridPosition2D::new(9, 9).0));
+    assert!(bounds.contains(&GridPosition2D::new(5, 5).0));
 
-    assert!(bounds.contains(&GridPosition2D::new(0, 0)));
-    assert!(bounds.contains(&GridPosition2D::new(9, 9)));
-    assert!(bounds.contains(&GridPosition2D::new(5, 5)));
-
-    assert!(!bounds.contains(&GridPosition2D::new(-1, 0)));
-    assert!(!bounds.contains(&GridPosition2D::new(0, -1)));
-    assert!(!bounds.contains(&GridPosition2D::new(10, 5)));
-    assert!(!bounds.contains(&GridPosition2D::new(5, 10)));
-}
-
-#[test]
-fn test_spatial_grid_plugin_integration()
-{
-    let _bounds = GridBounds2D::new(0, 2, 0, 2);
-
-    let builder = SimulationBuilder::new()
-        .add_entity_spawner(|spawner| {
-            // Spawn entities with grid positions
-            spawner.spawn((GridPosition2D::new(0, 0), TestEntity(1)));
-            spawner.spawn((GridPosition2D::new(1, 1), TestEntity(2)));
-            spawner.spawn((GridPosition2D::new(2, 2), TestEntity(3)));
-        })
-        .add_systems(|query: Query<(&GridPosition2D, &TestEntity)>| {
-            // Verify entities have grid positions and test data
-            for (position, test_entity) in &query
-            {
-                // Verify test entity data
-                assert!(test_entity.0 > 0);
-                assert!(position.x() >= 0 && position.x() <= 2);
-                assert!(position.y() >= 0 && position.y() <= 2);
-            }
-        });
-
-    let mut simulation = builder.build();
-    simulation.run(1);
-
-    // Test completed without panics, which means the spatial grid plugin
-    // is working correctly with the simulation systems
+    assert!(!bounds.contains(&GridPosition2D::new(-1, 0).0));
+    assert!(!bounds.contains(&GridPosition2D::new(0, -1).0));
+    assert!(!bounds.contains(&GridPosition2D::new(10, 5).0));
+    assert!(!bounds.contains(&GridPosition2D::new(5, 10).0));
 }
 
 #[test]
@@ -151,18 +117,18 @@ fn test_3d_grid_position_neighbors()
 #[test]
 fn test_3d_grid_position_orthogonal_neighbors()
 {
-    let pos = GridPosition3D::new_3d(1, 1, 1);
+    let pos = GridPosition3D::new(1, 1, 1);
 
     let neighbors: Vec<GridPosition3D> = pos.neighbors_orthogonal().collect();
     assert_eq!(neighbors.len(), 6); // 6 orthogonal directions in 3D
 
     let expected_neighbors = [
-        GridPosition3D::new_3d(0, 1, 1), // -x
-        GridPosition3D::new_3d(2, 1, 1), // +x
-        GridPosition3D::new_3d(1, 0, 1), // -y
-        GridPosition3D::new_3d(1, 2, 1), // +y
-        GridPosition3D::new_3d(1, 1, 0), // -z
-        GridPosition3D::new_3d(1, 1, 2), // +z
+        GridPosition3D::new(0, 1, 1), // -x
+        GridPosition3D::new(2, 1, 1), // +x
+        GridPosition3D::new(1, 0, 1), // -y
+        GridPosition3D::new(1, 2, 1), // +y
+        GridPosition3D::new(1, 1, 0), // -z
+        GridPosition3D::new(1, 1, 2), // +z
     ];
 
     for expected in expected_neighbors
@@ -178,36 +144,36 @@ fn test_3d_grid_position_orthogonal_neighbors()
 #[test]
 fn test_3d_grid_position_distances()
 {
-    let pos1 = GridPosition3D::new_3d(0, 0, 0);
-    let pos2 = GridPosition3D::new_3d(3, 4, 5);
+    let pos1 = GridPosition3D::new(0, 0, 0);
+    let pos2 = GridPosition3D::new(3, 4, 5);
 
     // Test 3D Manhattan distance
-    assert_eq!(pos1.manhattan_distance(&pos2), 12); // 3 + 4 + 5 = 12
+    let diff = pos2.0 - pos1.0;
+    assert_eq!(diff.abs().element_sum(), 12); // 3 + 4 + 5 = 12
 
-    let pos3 = GridPosition3D::new_3d(1, 1, 1);
-    assert_eq!(pos1.manhattan_distance(&pos3), 3); // 1 + 1 + 1 = 3
+    let pos3 = GridPosition3D::new(1, 1, 1);
+    let diff2 = pos3.0 - pos1.0;
+    assert_eq!(diff2.abs().element_sum(), 3); // 1 + 1 + 1 = 3
 }
 
 #[test]
 fn test_3d_grid_bounds()
 {
-    let bounds = GridBounds3D::new_3d(0, 9, 0, 9, 0, 9);
+    let bounds = GridBounds3D {
+        min: IVec3::new(0, 0, 0),
+        max: IVec3::new(9, 9, 9),
+    };
 
-    assert_eq!(bounds.width(), 10);
-    assert_eq!(bounds.height(), 10);
-    assert_eq!(bounds.depth(), 10);
-    assert_eq!(bounds.total_cells(), 1000);
+    assert!(bounds.contains(&GridPosition3D::new(0, 0, 0).0));
+    assert!(bounds.contains(&GridPosition3D::new(9, 9, 9).0));
+    assert!(bounds.contains(&GridPosition3D::new(5, 5, 5).0));
 
-    assert!(bounds.contains(&GridPosition3D::new_3d(0, 0, 0)));
-    assert!(bounds.contains(&GridPosition3D::new_3d(9, 9, 9)));
-    assert!(bounds.contains(&GridPosition3D::new_3d(5, 5, 5)));
-
-    assert!(!bounds.contains(&GridPosition3D::new_3d(-1, 0, 0)));
-    assert!(!bounds.contains(&GridPosition3D::new_3d(0, -1, 0)));
-    assert!(!bounds.contains(&GridPosition3D::new_3d(0, 0, -1)));
-    assert!(!bounds.contains(&GridPosition3D::new_3d(10, 5, 5)));
-    assert!(!bounds.contains(&GridPosition3D::new_3d(5, 10, 5)));
-    assert!(!bounds.contains(&GridPosition3D::new_3d(5, 5, 10)));
+    assert!(!bounds.contains(&GridPosition3D::new(-1, 0, 0).0));
+    assert!(!bounds.contains(&GridPosition3D::new(0, -1, 0).0));
+    assert!(!bounds.contains(&GridPosition3D::new(0, 0, -1).0));
+    assert!(!bounds.contains(&GridPosition3D::new(10, 5, 5).0));
+    assert!(!bounds.contains(&GridPosition3D::new(5, 10, 5).0));
+    assert!(!bounds.contains(&GridPosition3D::new(5, 5, 10).0));
 }
 
 #[test]
@@ -224,27 +190,25 @@ fn test_3d_spatial_grid_integration()
         }
     }
 
-    let bounds = GridBounds3D::new_3d(0, 4, 0, 4, 0, 4);
+    let bounds = GridBounds3D {
+        min: IVec3::new(0, 0, 0),
+        max: IVec3::new(4, 4, 4),
+    };
 
     let builder = SimulationBuilder::new()
         .add_spatial_grid::<IVec3, TestEntity3D>(bounds)
         .add_entity_spawner(|spawner| {
             // Spawn entities at different 3D positions
-            spawner.spawn((GridPosition3D::new_3d(0, 0, 0), TestEntity3D(1)));
-            spawner.spawn((GridPosition3D::new_3d(2, 2, 2), TestEntity3D(2)));
-            spawner.spawn((GridPosition3D::new_3d(4, 4, 4), TestEntity3D(3)));
-            spawner.spawn((GridPosition3D::new_3d(1, 2, 3), TestEntity3D(4)));
+            spawner.spawn((GridPosition3D::new(0, 0, 0), TestEntity3D(1)));
+            spawner.spawn((GridPosition3D::new(2, 2, 2), TestEntity3D(2)));
+            spawner.spawn((GridPosition3D::new(4, 4, 4), TestEntity3D(3)));
+            spawner.spawn((GridPosition3D::new(1, 2, 3), TestEntity3D(4)));
         })
         .add_systems(
-            |spatial_grids: Query<&SpatialGrid<IVec3, TestEntity3D>, With<SpatialGridEntity>>,
+            |spatial_grid: Res<SpatialGrid<IVec3, TestEntity3D>>,
              query: Query<(Entity, &GridPosition3D, &TestEntity3D)>| {
-                let Ok(spatial_grid) = spatial_grids.single()
-                else
-                {
-                    return; // Skip if spatial grid not found
-                };
                 // Test 3D spatial queries
-                let center_pos = GridPosition3D::new_3d(2, 2, 2);
+                let center_pos = GridPosition3D::new(2, 2, 2);
 
                 // Find entities within distance 2 in 3D space using neighbor-based approach
                 let mut nearby_entities = Vec::new();
@@ -260,7 +224,7 @@ fn test_3d_spatial_grid_integration()
                             let manhattan_distance = dx.abs() + dy.abs() + dz.abs();
                             if manhattan_distance <= 2
                             {
-                                let check_pos = GridPosition3D::new_3d(
+                                let check_pos = GridPosition3D::new(
                                     center_coord.x + dx,
                                     center_coord.y + dy,
                                     center_coord.z + dz,
@@ -291,7 +255,9 @@ fn test_3d_spatial_grid_integration()
     simulation.run(1);
 
     // Verify all entities were created
-    let entity_count = simulation.sample::<TestEntity3D, usize>().unwrap();
+    let entity_count = simulation
+        .sample::<TestEntity3D, usize>()
+        .expect("Failed to sample TestEntity3D count");
     assert_eq!(entity_count, 4);
 }
 
@@ -310,15 +276,18 @@ fn test_spatial_grid_reset_functionality()
         }
     }
 
-    let bounds = GridBounds2D::new_2d(0, 4, 0, 4);
+    let bounds = GridBounds2D {
+        min: IVec2::new(0, 0),
+        max: IVec2::new(4, 4),
+    };
 
     let mut simulation = SimulationBuilder::new()
         .add_spatial_grid::<IVec2, TestResetEntity>(bounds)
         .add_entity_spawner(|spawner| {
             // Spawn entities at different positions
-            spawner.spawn((GridPosition2D::new_2d(0, 0), TestResetEntity(1)));
-            spawner.spawn((GridPosition2D::new_2d(2, 2), TestResetEntity(2)));
-            spawner.spawn((GridPosition2D::new_2d(4, 4), TestResetEntity(3)));
+            spawner.spawn((GridPosition2D::new(0, 0), TestResetEntity(1)));
+            spawner.spawn((GridPosition2D::new(2, 2), TestResetEntity(2)));
+            spawner.spawn((GridPosition2D::new(4, 4), TestResetEntity(3)));
         })
         .build();
 
@@ -326,7 +295,9 @@ fn test_spatial_grid_reset_functionality()
     simulation.run(2);
 
     // Verify entities are tracked
-    let entity_count = simulation.sample::<TestResetEntity, usize>().unwrap();
+    let entity_count = simulation
+        .sample::<TestResetEntity, usize>()
+        .expect("Failed to sample TestResetEntity count");
     assert_eq!(entity_count, 3);
 
     // Reset simulation (this should trigger spatial grid reset on step 0)
@@ -334,6 +305,8 @@ fn test_spatial_grid_reset_functionality()
     simulation.run(1);
 
     // Verify entities are still tracked after reset
-    let entity_count_after_reset = simulation.sample::<TestResetEntity, usize>().unwrap();
+    let entity_count_after_reset = simulation
+        .sample::<TestResetEntity, usize>()
+        .expect("Failed to sample TestResetEntity count after reset");
     assert_eq!(entity_count_after_reset, 3);
 }
