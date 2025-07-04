@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 use incerto::{
-    plugins::{GridBounds3D, GridPosition3D, SpatialGrid, SpatialGridEntity},
+    plugins::{GridBounds3D, GridPosition3D, SpatialGrid3D},
     prelude::*,
 };
 use rand::prelude::*;
@@ -36,13 +36,13 @@ pub enum AircraftType
 
 impl AircraftType
 {
-    fn symbol(&self) -> &'static str
+    const fn symbol(self) -> &'static str
     {
         match self
         {
-            AircraftType::Commercial => "✈️",
-            AircraftType::PrivateJet => "🛩️",
-            AircraftType::Cargo => "🛫",
+            Self::Commercial => "✈️",
+            Self::PrivateJet => "🛩️",
+            Self::Cargo => "🛫",
         }
     }
 }
@@ -83,7 +83,7 @@ fn spawn_aircraft(spawner: &mut Spawner)
             speed: 1,
         };
 
-        let position = GridPosition3D::new_3d(x, y, z);
+        let position = GridPosition3D::new(x, y, z);
         spawner.spawn((aircraft, position));
     }
 }
@@ -98,11 +98,11 @@ fn move_aircraft(mut query: Query<(&mut GridPosition3D, &Aircraft)>)
         // Move towards target altitude
         if position.z() < aircraft.target_altitude
         {
-            *position = GridPosition3D::new_3d(position.x(), position.y(), position.z() + 1);
+            *position = GridPosition3D::new(position.x(), position.y(), position.z() + 1);
         }
         else if position.z() > aircraft.target_altitude
         {
-            *position = GridPosition3D::new_3d(position.x(), position.y(), position.z() - 1);
+            *position = GridPosition3D::new(position.x(), position.y(), position.z() - 1);
         }
 
         // Random horizontal movement
@@ -114,23 +114,17 @@ fn move_aircraft(mut query: Query<(&mut GridPosition3D, &Aircraft)>)
             let new_x = (position.x() + dx).clamp(0, AIRSPACE_SIZE - 1);
             let new_y = (position.y() + dy).clamp(0, AIRSPACE_SIZE - 1);
 
-            *position = GridPosition3D::new_3d(new_x, new_y, position.z());
+            *position = GridPosition3D::new(new_x, new_y, position.z());
         }
     }
 }
 
 /// Check for aircraft conflicts (too close in 3D space)
 fn check_conflicts(
-    spatial_grids: Query<&SpatialGrid<IVec3, Aircraft>, With<SpatialGridEntity>>,
+    spatial_grid: Res<SpatialGrid3D<Aircraft>>,
     query: Query<(Entity, &GridPosition3D, &Aircraft)>,
 )
 {
-    let Ok(spatial_grid) = spatial_grids.single()
-    else
-    {
-        return; // Skip if spatial grid not found
-    };
-
     let mut conflicts = 0;
 
     for (entity, position, aircraft) in &query
@@ -144,7 +138,7 @@ fn check_conflicts(
             {
                 if let Ok((_, nearby_pos, nearby_aircraft)) = query.get(nearby_entity)
                 {
-                    let distance = position.manhattan_distance(nearby_pos);
+                    let distance = (position.0 - nearby_pos.0).length_squared();
                     if distance <= 1
                     {
                         conflicts += 1;
@@ -218,14 +212,10 @@ fn main()
     println!("Duration: {} steps\n", SIMULATION_STEPS);
 
     // Create 3D airspace bounds
-    let bounds = GridBounds3D::new_3d(
-        0,
-        AIRSPACE_SIZE - 1,
-        0,
-        AIRSPACE_SIZE - 1,
-        0,
-        AIRSPACE_HEIGHT - 1,
-    );
+    let bounds = GridBounds3D {
+        min: IVec3::ZERO,
+        max: IVec3::new(AIRSPACE_SIZE, AIRSPACE_SIZE, AIRSPACE_HEIGHT),
+    };
 
     let mut simulation = SimulationBuilder::new()
         .add_spatial_grid::<IVec3, Aircraft>(bounds)
