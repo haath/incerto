@@ -62,16 +62,14 @@ where
     )
     {
         // only get new samples once every 'sample_interval' steps
-        if **step_counter % time_series.sample_interval != 0
+        if step_counter.is_multiple_of(time_series.sample_interval)
         {
-            return;
+            let component_values = query.iter().collect::<Vec<_>>();
+
+            let sample = C::sample(&component_values);
+
+            time_series.values.push(sample);
         }
-
-        let component_values = query.iter().collect::<Vec<_>>();
-
-        let sample = C::sample(&component_values);
-
-        time_series.values.push(sample);
     }
 }
 
