@@ -251,7 +251,7 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     }
 
     /// Add an entity at a specific grid position.
-    pub(crate) fn insert(&mut self, entity: Entity, position: GridPosition<T>)
+    fn insert(&mut self, entity: Entity, position: GridPosition<T>)
     {
         // Remove entity from old position if it exists
         self.remove(entity);
@@ -267,7 +267,7 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     /// Remove an entity from the spatial index.
     ///
     /// Returns the position where the entity was located, if it was found.
-    pub(crate) fn remove(&mut self, entity: Entity) -> Option<GridPosition<T>>
+    fn remove(&mut self, entity: Entity) -> Option<GridPosition<T>>
     {
         let position = self.entity_to_position.remove(&entity)?;
 
@@ -343,7 +343,7 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     }
 
     /// Clear all entities from the spatial index.
-    pub fn clear(&mut self)
+    fn clear(&mut self)
     {
         self.position_to_entities.clear();
         self.entity_to_position.clear();
