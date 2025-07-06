@@ -437,7 +437,6 @@ fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
 {
     for (entity, position) in &query
     {
-        spatial_grid.remove(entity);
         spatial_grid.insert(entity, *position);
     }
 }

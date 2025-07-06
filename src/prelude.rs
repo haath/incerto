@@ -5,10 +5,6 @@ pub use bevy::prelude::{
 
 pub use super::{
     GridBounds, GridBounds2D, GridBounds3D, GridCoordinates, GridPosition, GridPosition2D,
-    GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D, TimeSeries,
-    error::*,
-    simulation::Simulation,
-    simulation_builder::SimulationBuilder,
-    spawner::Spawner,
-    traits::*,
+    GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D, TimeSeries, error::*,
+    simulation::Simulation, simulation_builder::SimulationBuilder, spawner::Spawner, traits::*,
 };
