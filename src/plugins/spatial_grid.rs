@@ -269,20 +269,20 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     /// Returns the position where the entity was located, if it was found.
     pub(crate) fn remove(&mut self, entity: Entity) -> Option<GridPosition<T>>
     {
-        if let Some(position) = self.entity_to_position.remove(&entity)
-            && let Some(entities) = self.position_to_entities.get_mut(&position)
-        {
-            entities.remove(&entity);
-            if entities.is_empty()
-            {
-                self.position_to_entities.remove(&position);
-            }
-            Some(position)
-        }
+        let position = self.entity_to_position.remove(&entity)?;
+
+        let Some(entities_at_position) = self.position_to_entities.get_mut(&position)
         else
         {
-            None
+            panic!("entity found in one hashmap but not the other?");
+        };
+
+        entities_at_position.remove(&entity);
+        if entities_at_position.is_empty()
+        {
+            self.position_to_entities.remove(&position);
         }
+        Some(position)
     }
 
     /// Get all entities at a specific position.
