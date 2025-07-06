@@ -22,10 +22,7 @@
 use std::collections::HashSet;
 
 use bevy::prelude::IVec2;
-use incerto::{
-    plugins::{GridBounds2D, GridPosition2D, SpatialGrid},
-    prelude::*,
-};
+use incerto::prelude::*;
 use rand::prelude::*;
 
 // Simulation parameters

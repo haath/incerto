@@ -8,10 +8,7 @@
 #![allow(clippy::expect_used)]
 
 use bevy::prelude::*;
-use incerto::{
-    plugins::{GridBounds3D, GridPosition3D, SpatialGrid3D},
-    prelude::*,
-};
+use incerto::prelude::*;
 use rand::prelude::*;
 
 // Simulation parameters

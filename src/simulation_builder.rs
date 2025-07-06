@@ -90,7 +90,6 @@ impl SimulationBuilder
     /// ```
     /// # use bevy::prelude::IVec2;
     /// # use incerto::prelude::*;
-    /// # use incerto::plugins::{GridBounds2D};
     /// #[derive(Component)]
     /// struct Person;
     ///

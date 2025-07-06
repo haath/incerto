@@ -3,10 +3,7 @@
 #![allow(clippy::cast_possible_truncation)]
 
 use bevy::prelude::{IVec2, IVec3};
-use incerto::{
-    plugins::{GridBounds2D, GridBounds3D, GridPosition2D, GridPosition3D, SpatialGrid},
-    prelude::*,
-};
+use incerto::prelude::*;
 
 #[test]
 fn test_grid_position_neighbors()
