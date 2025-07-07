@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
 use bevy::{
     ecs::entity::EntityHashMap,
@@ -29,7 +29,7 @@ const WEST_3D: IVec3 = IVec3::new(-1, 0, 0);
 /// A sealed trait for coordinates on a grid.
 /// Will be implemented for [`IVec2`] and [`IVec3`].
 pub trait GridCoordinates:
-    private::Sealed + Clone + Copy + Hash + PartialEq + Eq + Send + Sync + 'static
+    private::Sealed + Clone + Copy + Debug + Hash + PartialEq + Eq + Send + Sync + 'static
 {
     fn neighbors(&self) -> impl Iterator<Item = Self>;
 
@@ -39,10 +39,18 @@ pub trait GridCoordinates:
 }
 
 /// Describes the bounds of a grid.
+///
+/// All components of [`Self::min`] must be less than the corresponding components
+/// in [`Self::max`].
+///
+/// Note that [`GridBounds2D`] and [`GridBounds3D`] may be used as shorthand types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GridBounds<T: GridCoordinates>
 {
+    /// The bottom-left corner of the grid.
     pub min: T,
+
+    /// The top-right corner of the grid.
     pub max: T,
 }
 
@@ -103,9 +111,13 @@ impl GridCoordinates for IVec3
 }
 
 /// Component representing a position in the spatial grid.
-/// Generic over coordinate types that implement the `GridCoordinate` trait.
+///
+/// Any entities with this component will be automatically added to the corresponding [`SpatialGrid`],
+/// assuming one has been added to the simulation through [`crate::SimulationBuilder::add_spatial_grid`].
+///
+/// Note that [`GridPosition2D`] and [`GridPosition3D`] may be used as shorthand types.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GridPosition<T: GridCoordinates + private::Sealed>(pub T);
+pub struct GridPosition<T: GridCoordinates>(pub T);
 
 // Convenience methods for 2D positions
 impl GridPosition<IVec2>
@@ -250,9 +262,24 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
         self.bounds
     }
 
-    /// Add an entity at a specific grid position.
-    fn insert(&mut self, entity: Entity, position: GridPosition<T>)
+    /// Checks if the given position is within the bounds of the spatial grid.
+    ///
+    /// Will always return `true` if no bounds are set.
+    #[must_use]
+    pub fn in_bounds(&self, position: GridPosition<T>) -> bool
     {
+        self.bounds
+            .is_none_or(|bounds| position.0.in_bounds(&bounds))
+    }
+
+    /// Add an entity at a specific grid position.
+    fn insert_or_update(&mut self, entity: Entity, position: GridPosition<T>)
+    {
+        assert!(
+            self.in_bounds(position),
+            "entity at position {position:?} outside spatial grid bounds"
+        );
+
         // Remove entity from old position if it exists
         self.remove(entity);
 
@@ -302,6 +329,8 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     }
 
     /// Get all entities in the neighborhood of a position (Moore neighborhood).
+    ///
+    /// This takes into account the grid bounds, if they have been set.
     pub fn neighbors_of(&self, position: &GridPosition<T>) -> impl Iterator<Item = Entity>
     {
         position
@@ -321,6 +350,8 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
     }
 
     /// Get all entities in the orthogonal neighborhood of a position (Von Neumann neighborhood).
+    ///
+    /// This takes into account the grid bounds, if they have been set.
     pub fn orthogonal_neighbors_of(
         &self,
         position: &GridPosition<T>,
@@ -437,7 +468,7 @@ fn spatial_grid_update_system<T: GridCoordinates, C: Component>(
 {
     for (entity, position) in &query
     {
-        spatial_grid.insert(entity, *position);
+        spatial_grid.insert_or_update(entity, *position);
     }
 }
 
@@ -454,22 +485,22 @@ fn spatial_grid_cleanup_system<T: GridCoordinates, C: Component>(
 }
 
 // Type aliases for convenience
-/// 2D spatial grid using `IVec2` coordinates.
+/// Shorthand type for [`SpatialGrid<IVec2, C>`].
 pub type SpatialGrid2D<C> = SpatialGrid<IVec2, C>;
 
-/// 3D spatial grid using `IVec3` coordinates.
+/// Shorthand type for [`SpatialGrid<IVec3, C>`].
 pub type SpatialGrid3D<C> = SpatialGrid<IVec3, C>;
 
-/// 2D grid position using `IVec2` coordinates.
+/// Shorthand type for [`GridPosition<IVec2>`].
 pub type GridPosition2D = GridPosition<IVec2>;
 
-/// 3D grid position using `IVec3` coordinates.
+/// Shorthand type for [`GridPosition<IVec3>`].
 pub type GridPosition3D = GridPosition<IVec3>;
 
-/// 2D grid bounds using `IRect`.
+/// Shorthand type for [`GridBounds<IVec2>`].
 pub type GridBounds2D = GridBounds<IVec2>;
 
-/// 3D grid bounds using custom `Bounds3D`.
+/// Shorthand type for [`GridBounds<IVec3>`].
 pub type GridBounds3D = GridBounds<IVec3>;
 
 /// Private module to enforce the sealed trait pattern.

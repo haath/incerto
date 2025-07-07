@@ -212,7 +212,7 @@ fn main()
     };
 
     let mut simulation = SimulationBuilder::new()
-        .add_spatial_grid::<IVec3, Aircraft>(bounds)
+        .add_spatial_grid::<IVec3, Aircraft>(Some(bounds))
         .add_entity_spawner(spawn_aircraft)
         .add_systems((move_aircraft, check_conflicts, display_airspace))
         .build();

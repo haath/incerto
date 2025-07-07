@@ -155,7 +155,7 @@ fn main()
     };
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
-        .add_spatial_grid::<IVec2, ForestCell>(bounds)
+        .add_spatial_grid::<IVec2, ForestCell>(Some(bounds))
         // Spawn the forest grid
         .add_entity_spawner(spawn_forest_grid)
         // Add fire spread system

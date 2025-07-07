@@ -9,8 +9,7 @@ pub struct TimeSeries<C, F, O>
 {
     pub(crate) values: Vec<O>,
     sample_interval: usize,
-    _pd_c: PhantomData<C>,
-    _pd_f: PhantomData<F>,
+    _phantom: PhantomData<(C, F)>,
 }
 
 #[derive(Default)]
@@ -21,9 +20,7 @@ where
     F: QueryFilter + Send + Sync + 'static,
 {
     sample_interval: usize,
-    _pd_c: PhantomData<C>,
-    _pd_f: PhantomData<F>,
-    _pd_o: PhantomData<O>,
+    _phantom: PhantomData<(C, F, O)>,
 }
 
 impl<C, F, O> TimeSeriesPlugin<C, F, O>
@@ -37,9 +34,7 @@ where
     {
         Self {
             sample_interval,
-            _pd_c: PhantomData,
-            _pd_f: PhantomData,
-            _pd_o: PhantomData,
+            _phantom: PhantomData,
         }
     }
 
@@ -85,8 +80,7 @@ where
         app.insert_resource(TimeSeries {
             values: Vec::<O>::new(),
             sample_interval: self.sample_interval,
-            _pd_c: PhantomData::<C>,
-            _pd_f: PhantomData::<F>,
+            _phantom: PhantomData::<(C, F)>,
         });
 
         app.add_systems(PreUpdate, Self::time_series_reset)

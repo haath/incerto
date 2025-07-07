@@ -10,6 +10,7 @@ use crate::{
         GridBounds, GridCoordinates, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
         TimeSeriesPlugin,
     },
+    prelude::{GridBounds2D, GridBounds3D},
     simulation::Simulation,
     spawner::Spawner,
 };
@@ -81,10 +82,13 @@ impl SimulationBuilder
 
     /// Add a spatial grid for a specific component type to the simulation.
     ///
+    /// This creates a spatial index for entities that have both [`super::GridPosition<T>`] and the specified component `C`.
+    /// Multiple spatial grids can coexist, one for each component type `C`.
     ///
-    /// This creates a spatial index for entities that have both `GridPosition<T>` and the specified component `C`.
-    /// Multiple spatial grids can coexist for different component types.
-    /// The spatial grid will be spawned as an entity during simulation startup.
+    /// The spatial grid can be access by the user using the [`super::SpatialGrid<T, C>`] bevy resource.
+    ///
+    /// Optionally, if `Some(bounds)` are given, a panic will be raised if an entity has a [`super::GridPosition`]
+    /// outside the bounds.
     ///
     /// Example:
     /// ```
@@ -101,20 +105,38 @@ impl SimulationBuilder
     ///     max: IVec2::new(99, 99),
     /// };
     /// let simulation = SimulationBuilder::new()
-    ///     .add_spatial_grid::<IVec2, Person>(bounds)
-    ///     .add_spatial_grid::<IVec2, Vehicle>(bounds)
+    ///     .add_spatial_grid::<IVec2, Person>(Some(bounds))
+    ///     .add_spatial_grid::<IVec2, Vehicle>(None)
     ///     .build();
     /// ```
     #[must_use]
     pub fn add_spatial_grid<T: GridCoordinates, C: Component>(
         mut self,
-        bounds: GridBounds<T>,
+        bounds: Option<GridBounds<T>>,
     ) -> Self
     {
         self.sim
             .app
-            .add_plugins(SpatialGridPlugin::<T, C>::new(Some(bounds)));
+            .add_plugins(SpatialGridPlugin::<T, C>::new(bounds));
         self
+    }
+
+    /// Adds a 2D spatial grid for a specific component type to the simulation.
+    ///
+    /// See [`Self::add_spatial_grid`] for details.
+    #[must_use]
+    pub fn add_spatial_grid_2d<C: Component>(self, bounds: Option<GridBounds2D>) -> Self
+    {
+        self.add_spatial_grid::<IVec2, C>(bounds)
+    }
+
+    /// Adds a 3D spatial grid for a specific component type to the simulation.
+    ///
+    /// See [`Self::add_spatial_grid`] for details.
+    #[must_use]
+    pub fn add_spatial_grid_3d<C: Component>(self, bounds: Option<GridBounds3D>) -> Self
+    {
+        self.add_spatial_grid::<IVec3, C>(bounds)
     }
 
     /// Add an entity spawner function to the simulation.

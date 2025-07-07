@@ -170,7 +170,7 @@ fn main()
     };
     let mut simulation = SimulationBuilder::new()
         // Add spatial grid support
-        .add_spatial_grid::<IVec2, Person>(bounds)
+        .add_spatial_grid::<IVec2, Person>(Some(bounds))
         // Spawn initial population
         .add_entity_spawner(spawn_population)
         // Movement and social distancing

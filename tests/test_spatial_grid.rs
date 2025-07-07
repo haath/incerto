@@ -193,7 +193,7 @@ fn test_3d_spatial_grid_integration()
     };
 
     let builder = SimulationBuilder::new()
-        .add_spatial_grid::<IVec3, TestEntity3D>(bounds)
+        .add_spatial_grid::<IVec3, TestEntity3D>(Some(bounds))
         .add_entity_spawner(|spawner| {
             // Spawn entities at different 3D positions
             spawner.spawn((GridPosition3D::new(0, 0, 0), TestEntity3D(1)));
@@ -279,7 +279,7 @@ fn test_spatial_grid_reset_functionality()
     };
 
     let mut simulation = SimulationBuilder::new()
-        .add_spatial_grid::<IVec2, TestResetEntity>(bounds)
+        .add_spatial_grid::<IVec2, TestResetEntity>(Some(bounds))
         .add_entity_spawner(|spawner| {
             // Spawn entities at different positions
             spawner.spawn((GridPosition2D::new(0, 0), TestResetEntity(1)));
