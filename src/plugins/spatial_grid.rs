@@ -6,8 +6,6 @@ use bevy::{
     prelude::*,
 };
 
-use crate::plugins::step_counter::StepCounter;
-
 // Direction constants for 2D grid movement
 const NORTH: IVec2 = IVec2::new(0, -1);
 const SOUTH: IVec2 = IVec2::new(0, 1);
@@ -373,13 +371,6 @@ impl<T: GridCoordinates, C: Component> SpatialGrid<T, C>
             })
     }
 
-    /// Clear all entities from the spatial index.
-    fn clear(&mut self)
-    {
-        self.position_to_entities.clear();
-        self.entity_to_position.clear();
-    }
-
     /// Check if a position is empty (has no entities).
     #[must_use]
     pub fn is_empty(&self, position: &GridPosition<T>) -> bool
@@ -414,45 +405,24 @@ impl<T: GridCoordinates, C: Component> SpatialGridPlugin<T, C>
             _phantom: std::marker::PhantomData,
         }
     }
-
-    pub fn init(app: &mut App, bounds: Option<GridBounds<T>>)
-    {
-        // Spawn the spatial grid entity directly
-        let spatial_grid = SpatialGrid::<T, C>::new(bounds);
-        app.world_mut().insert_resource(spatial_grid);
-    }
 }
 
 impl<T: GridCoordinates, C: Component> Plugin for SpatialGridPlugin<T, C>
 {
     fn build(&self, app: &mut App)
     {
-        Self::init(app, self.bounds);
+        let spatial_grid = SpatialGrid::<T, C>::new(self.bounds);
+        app.insert_resource(spatial_grid);
 
         // System to maintain the spatial index
         app.add_systems(
             PreUpdate,
             (
-                spatial_grid_reset_system::<T, C>,
                 spatial_grid_update_system::<T, C>,
                 spatial_grid_cleanup_system::<T, C>,
             )
                 .chain(),
         );
-    }
-}
-
-/// System that resets the spatial grid at the beginning of each simulation.
-fn spatial_grid_reset_system<T: GridCoordinates, C: Component>(
-    mut spatial_grid: ResMut<SpatialGrid<T, C>>,
-    step_counter: Res<StepCounter>,
-)
-{
-    // Reset the spatial grid whenever the step counter is 0
-    // This should occur on the first step of every simulation
-    if **step_counter == 0
-    {
-        spatial_grid.clear();
     }
 }
 

@@ -9,19 +9,11 @@ impl Plugin for StepCounterPlugin
 {
     fn build(&self, app: &mut App)
     {
-        Self::init(app);
+        app.insert_resource(StepCounter(0));
 
         // increment the step counter after any other systems in the simulation
         // this enables a reliable step number reading in PreUpdate
         app.add_systems(Last, step_counter_increment);
-    }
-}
-
-impl StepCounterPlugin
-{
-    pub fn init(app: &mut App)
-    {
-        app.insert_resource(StepCounter(0));
     }
 }
 

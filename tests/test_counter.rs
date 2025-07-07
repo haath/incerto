@@ -43,18 +43,11 @@ fn test_counter()
         .expect("expected to sample the counter sum");
     assert_eq!(counter, NUM_STEPS);
 
-    simulation.run_new(NUM_STEPS);
-    let counter = simulation
-        .sample::<MyCounter, _>()
-        .expect("expected to sample the counter sum");
-    assert_eq!(counter, NUM_STEPS);
-
-    simulation.reset();
     simulation.run(NUM_STEPS);
     let counter = simulation
         .sample::<MyCounter, _>()
         .expect("expected to sample the counter sum");
-    assert_eq!(counter, NUM_STEPS);
+    assert_eq!(counter, 2 * NUM_STEPS);
 }
 
 #[test]
@@ -164,7 +157,7 @@ fn test_counter_time_series()
         .copied()
         .collect::<Vec<_>>();
 
-    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+    assert_eq!(values, vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
 
     // run for 10 more steps, check that the next value is sampled into the continuing series
     simulation.run(10);
@@ -176,18 +169,5 @@ fn test_counter_time_series()
         .copied()
         .collect::<Vec<_>>();
 
-    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101]);
-
-    // run it again from the beginning
-    // verify that the time series also starts anew
-    simulation.run_new(NUM_STEPS);
-
-    let values = simulation
-        .get_time_series::<MyCounter, _>()
-        .expect("time series not recorded")
-        .into_iter()
-        .copied()
-        .collect::<Vec<_>>();
-
-    assert_eq!(values, vec![1, 11, 21, 31, 41, 51, 61, 71, 81, 91]);
+    assert_eq!(values, vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]);
 }

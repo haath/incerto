@@ -1,57 +1,20 @@
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{
-    Spawner,
-    error::SampleError,
-    plugins::{StepCounterPlugin, TimeSeries},
-    traits::Sample,
-};
-
-type SpawnFn = Box<dyn Fn(&mut Spawner)>;
+use crate::{error::SampleError, plugins::TimeSeries, traits::Sample};
 
 /// Executor of monte carlo experiments.
 ///
 /// Constructed using [`super::SimulationBuilder`].
 ///
 /// This type holds a simulation's state and provides methods for interacting with it,
-/// such as running it, resetting it, and extracting values from the entities existing
-/// within.
+/// such as running it, and extracting values from the entities existing within.
 pub struct Simulation
 {
     pub(super) app: App,
-    pub(super) spawners: Vec<SpawnFn>,
 }
 
 impl Simulation
 {
-    /// Run a number of steps of a new simulation.
-    ///
-    /// Equivalent to calling [`Self::reset`] followed by [`Self::run`].
-    pub fn run_new(&mut self, num_steps: usize)
-    {
-        self.reset();
-        self.run(num_steps);
-    }
-
-    /// Reset the simulation to its initial state.
-    ///
-    /// Calling this method will clear all existing entities, reset all system resources,
-    /// and execute all configured spawners.
-    pub fn reset(&mut self)
-    {
-        self.app.world_mut().clear_entities();
-
-        // init all plugins necessary
-        StepCounterPlugin::init(&mut self.app);
-
-        // spawn all entities
-        let mut spawner = Spawner(self.app.world_mut());
-        for spawn_fn in &self.spawners
-        {
-            spawn_fn(&mut spawner);
-        }
-    }
-
     /// Run a number of steps of the simulation.
     pub fn run(&mut self, num_steps: usize)
     {

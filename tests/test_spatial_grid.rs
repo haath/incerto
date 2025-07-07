@@ -296,14 +296,4 @@ fn test_spatial_grid_reset_functionality()
         .sample::<TestResetEntity, usize>()
         .expect("Failed to sample TestResetEntity count");
     assert_eq!(entity_count, 3);
-
-    // Reset simulation (this should trigger spatial grid reset on step 0)
-    simulation.reset();
-    simulation.run(1);
-
-    // Verify entities are still tracked after reset
-    let entity_count_after_reset = simulation
-        .sample::<TestResetEntity, usize>()
-        .expect("Failed to sample TestResetEntity count after reset");
-    assert_eq!(entity_count_after_reset, 3);
 }

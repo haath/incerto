@@ -15,6 +15,8 @@ use crate::{
     spawner::Spawner,
 };
 
+type SpawnFn = Box<dyn Fn(&mut Spawner)>;
+
 /// Builder type used to construct a [`Simulation`] object.
 ///
 /// The builder is used to logically separate the construction of a simulation with its execution.
@@ -23,6 +25,7 @@ use crate::{
 pub struct SimulationBuilder
 {
     sim: Simulation,
+    spawners: Vec<SpawnFn>,
 }
 
 impl Default for SimulationBuilder
@@ -45,12 +48,12 @@ impl SimulationBuilder
 
         app.update();
 
-        let sim = Simulation {
-            app,
-            spawners: Vec::new(),
-        };
+        let sim = Simulation { app };
 
-        Self { sim }
+        Self {
+            sim,
+            spawners: Vec::new(),
+        }
     }
 
     /// Add systems to the simulation.
@@ -154,7 +157,7 @@ impl SimulationBuilder
     #[must_use]
     pub fn add_entity_spawner(mut self, entity_spawner: impl Fn(&mut Spawner) + 'static) -> Self
     {
-        self.sim.spawners.push(Box::new(entity_spawner));
+        self.spawners.push(Box::new(entity_spawner));
         self
     }
 
@@ -238,7 +241,12 @@ impl SimulationBuilder
 
     pub fn build(mut self) -> Simulation
     {
-        self.sim.reset();
+        // spawn all entities
+        let mut spawner = Spawner(self.sim.app.world_mut());
+        for spawn_fn in &self.spawners
+        {
+            spawn_fn(&mut spawner);
+        }
 
         self.sim
     }

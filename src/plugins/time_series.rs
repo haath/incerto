@@ -38,19 +38,6 @@ where
         }
     }
 
-    fn time_series_reset(
-        mut time_series: ResMut<TimeSeries<C, F, O>>,
-        step_counter: Res<StepCounter>,
-    )
-    {
-        // reset the time series data whenever the step counter is 0
-        // this should occur on the first step of every simulation
-        if **step_counter == 0
-        {
-            time_series.values.clear();
-        }
-    }
-
     fn time_series_sample(
         mut time_series: ResMut<TimeSeries<C, F, O>>,
         step_counter: Res<StepCounter>,
@@ -83,7 +70,6 @@ where
             _phantom: PhantomData::<(C, F)>,
         });
 
-        app.add_systems(PreUpdate, Self::time_series_reset)
-            .add_systems(PostUpdate, Self::time_series_sample.chain());
+        app.add_systems(PostUpdate, Self::time_series_sample.chain());
     }
 }
