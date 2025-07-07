@@ -175,6 +175,21 @@ Currently the following ways of fetching simulation results are supported.
 - Record and collect time series data of values sampled from components. Call `builder.record_time_series::<C, O>()` on the builder to set up the recording, and then `simulation.get_time_series::<C, O>()` to collect the results.
 
 
+## Examples
+
+The crate includes several comprehensive examples demonstrating different simulation patterns:
+
+### Basic Simulations
+- **[Counter](examples/counter.rs)** - Simple entity counting and state management
+- **[Pandemic](examples/pandemic.rs)** - Basic disease spread simulation with random movement
+- **[Step Counter](examples/step_counter.rs)** - Demonstrates the built-in step counter plugin
+- **[Traders](examples/traders.rs)** - Time series collection with multiple trader agents
+
+### Spatial Simulations
+- **[Forest Fire](examples/forest_fire.rs)** - Cellular automaton fire spread with spatial grid optimization
+- **[Pandemic Spatial](examples/pandemic_spatial.rs)** - Advanced epidemic modeling with infection radius, social distancing, contact tracing, and quarantine zones
+
+
 ## Performance
 
 When it comes to experiments like Monte Carlo, performance is typically of paramount importance since it defines their limits in terms of scope, size, length and granularity. Hence why I made the decision build this crate on top of bevy. The ECS architecture on offer here is likely the most memory-efficient and parallelizable way one can build such simulations, while still maintaining some agency of high-level programming.

@@ -6,7 +6,10 @@ use bevy::{
 
 use crate::{
     Sample, SimulationBuildError,
-    plugins::{StepCounterPlugin, TimeSeries, TimeSeriesPlugin},
+    plugins::{
+        GridBounds, GridCoordinates, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
+        TimeSeriesPlugin,
+    },
     simulation::Simulation,
     spawner::Spawner,
 };
@@ -73,6 +76,44 @@ impl SimulationBuilder
     pub fn register_event<E: Event>(mut self) -> Self
     {
         self.sim.app.add_event::<E>();
+        self
+    }
+
+    /// Add a spatial grid for a specific component type to the simulation.
+    ///
+    ///
+    /// This creates a spatial index for entities that have both `GridPosition<T>` and the specified component `C`.
+    /// Multiple spatial grids can coexist for different component types.
+    /// The spatial grid will be spawned as an entity during simulation startup.
+    ///
+    /// Example:
+    /// ```
+    /// # use bevy::prelude::IVec2;
+    /// # use incerto::prelude::*;
+    /// #[derive(Component)]
+    /// struct Person;
+    ///
+    /// #[derive(Component)]
+    /// struct Vehicle;
+    ///
+    /// let bounds = GridBounds2D {
+    ///     min: IVec2::new(0, 0),
+    ///     max: IVec2::new(99, 99),
+    /// };
+    /// let simulation = SimulationBuilder::new()
+    ///     .add_spatial_grid::<IVec2, Person>(bounds)
+    ///     .add_spatial_grid::<IVec2, Vehicle>(bounds)
+    ///     .build();
+    /// ```
+    #[must_use]
+    pub fn add_spatial_grid<T: GridCoordinates, C: Component>(
+        mut self,
+        bounds: GridBounds<T>,
+    ) -> Self
+    {
+        self.sim
+            .app
+            .add_plugins(SpatialGridPlugin::<T, C>::new(Some(bounds)));
         self
     }
 

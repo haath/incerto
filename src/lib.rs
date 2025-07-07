@@ -23,6 +23,10 @@ mod spawner;
 mod traits;
 
 pub use error::*;
+pub use plugins::{
+    GridBounds, GridBounds2D, GridBounds3D, GridCoordinates, GridPosition, GridPosition2D,
+    GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D, TimeSeries,
+};
 pub use simulation::Simulation;
 pub use simulation_builder::SimulationBuilder;
 pub use spawner::Spawner;
