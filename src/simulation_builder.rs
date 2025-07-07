@@ -43,7 +43,8 @@ impl SimulationBuilder
     {
         let mut app = App::new();
 
-        app.add_plugins(MinimalPlugins.set(ScheduleRunnerPlugin::run_once()))
+        app.add_plugins(TaskPoolPlugin::default())
+            .add_plugins(ScheduleRunnerPlugin::run_once())
             .add_plugins(StepCounterPlugin);
 
         app.update();
