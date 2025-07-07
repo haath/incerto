@@ -24,7 +24,7 @@ type SpawnFn = Box<dyn Fn(&mut Spawner)>;
 /// restart the simulation from the beginning, collect results and so on.
 pub struct SimulationBuilder
 {
-    sim: Simulation,
+    app: App,
     spawners: Vec<SpawnFn>,
 }
 
@@ -49,10 +49,8 @@ impl SimulationBuilder
 
         app.update();
 
-        let sim = Simulation { app };
-
         Self {
-            sim,
+            app,
             spawners: Vec::new(),
         }
     }
@@ -67,7 +65,7 @@ impl SimulationBuilder
     #[must_use]
     pub fn add_systems<M>(mut self, systems: impl IntoScheduleConfigs<ScheduleSystem, M>) -> Self
     {
-        self.sim.app.add_systems(Update, systems);
+        self.app.add_systems(Update, systems);
         self
     }
 
@@ -80,7 +78,7 @@ impl SimulationBuilder
     #[must_use]
     pub fn register_event<E: Event>(mut self) -> Self
     {
-        self.sim.app.add_event::<E>();
+        self.app.add_event::<E>();
         self
     }
 
@@ -119,9 +117,7 @@ impl SimulationBuilder
         bounds: Option<GridBounds<T>>,
     ) -> Self
     {
-        self.sim
-            .app
-            .add_plugins(SpatialGridPlugin::<T, C>::new(bounds));
+        self.app.add_plugins(SpatialGridPlugin::<T, C>::new(bounds));
         self
     }
 
@@ -227,28 +223,37 @@ impl SimulationBuilder
     {
         assert!(sample_interval > 0);
 
-        let world = self.sim.app.world();
+        let world = self.app.world();
         if world.get_resource::<TimeSeries<C, F, O>>().is_some()
         {
             // More than one time series recording for the same C, F, O is not possible.
             return Err(SimulationBuildError::TimeSeriesRecordingConflict);
         }
 
-        self.sim
-            .app
+        self.app
             .add_plugins(TimeSeriesPlugin::<C, F, O>::new(sample_interval));
         Ok(self)
+    }
+
+    /// Adds a bevy [`Resource`] to the simulation.
+    ///
+    /// This can later be accessed in user-defined systems using [`Res<R>`] and [`ResMut<R>`] arguments.
+    #[must_use]
+    pub fn add_resource<R: Resource>(mut self, resource: R) -> Self
+    {
+        self.app.insert_resource(resource);
+        self
     }
 
     pub fn build(mut self) -> Simulation
     {
         // spawn all entities
-        let mut spawner = Spawner(self.sim.app.world_mut());
+        let mut spawner = Spawner(self.app.world_mut());
         for spawn_fn in &self.spawners
         {
             spawn_fn(&mut spawner);
         }
 
-        self.sim
+        Simulation { app: self.app }
     }
 }

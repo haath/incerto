@@ -147,7 +147,7 @@ fn multiple_queries(
 
 #### Running the simulation
 
-The simulation may be executed using the `run()`, `reset()` and `run_new()` methods.
+The simulation may be executed using the `run()`, method.
 
 ```rust
 // Run the simulation for 100 steps.
@@ -155,13 +155,6 @@ simulation.run(100);
 
 // Continue the same simulation for another 200 steps.
 simulation.run(200);
-
-// Run the simulation for 500 steps from the beginning.
-simulation.reset();
-simulation.run(500);
-
-// Can also be done like this.
-simulation.run_new(500);
 ```
 
 
@@ -216,10 +209,10 @@ You get to enjoy all the performance gains of the ECS automatically. However the
     So in case where an entity's state needs to change often in the simulation, consider using persistent enums instead.
 
 
-
 ## Planned work
 
 - Add some utilities to the crate for easy access to random values, noise etc
+- Add some support for data plotting.
 
 
 ## Credits
