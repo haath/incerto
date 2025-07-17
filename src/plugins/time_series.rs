@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{Sample, plugins::step_counter::StepCounter};
+use crate::{SampleAggregate, plugins::step_counter::StepCounter};
 
 #[derive(Resource, Default)]
 pub struct TimeSeries<C, F, O>
@@ -13,9 +13,9 @@ pub struct TimeSeries<C, F, O>
 }
 
 #[derive(Default)]
-pub struct TimeSeriesPlugin<C, F, O>
+pub struct AggregateTimeSeriesPlugin<C, F, O>
 where
-    C: Sample<O>,
+    C: SampleAggregate<O>,
     O: Send + Sync + 'static,
     F: QueryFilter + Send + Sync + 'static,
 {
@@ -23,9 +23,9 @@ where
     _phantom: PhantomData<(C, F, O)>,
 }
 
-impl<C, F, O> TimeSeriesPlugin<C, F, O>
+impl<C, F, O> AggregateTimeSeriesPlugin<C, F, O>
 where
-    C: Sample<O>,
+    C: SampleAggregate<O>,
     O: Send + Sync + 'static,
     F: QueryFilter + Send + Sync + 'static,
 {
@@ -49,16 +49,16 @@ where
         {
             let component_values = query.iter().collect::<Vec<_>>();
 
-            let sample = C::sample(&component_values);
+            let sample = C::sample_aggregate(&component_values);
 
             time_series.values.push(sample);
         }
     }
 }
 
-impl<C, F, O> Plugin for TimeSeriesPlugin<C, F, O>
+impl<C, F, O> Plugin for AggregateTimeSeriesPlugin<C, F, O>
 where
-    C: Sample<O>,
+    C: SampleAggregate<O>,
     O: Send + Sync + 'static,
     F: QueryFilter + Send + Sync + 'static,
 {

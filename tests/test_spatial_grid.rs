@@ -179,9 +179,9 @@ fn test_3d_spatial_grid_integration()
     #[derive(Component)]
     struct TestEntity3D(i32);
 
-    impl Sample<usize> for TestEntity3D
+    impl SampleAggregate<usize> for TestEntity3D
     {
-        fn sample(components: &[&Self]) -> usize
+        fn sample_aggregate(components: &[&Self]) -> usize
         {
             components.len()
         }
@@ -265,9 +265,9 @@ fn test_spatial_grid_reset_functionality()
     #[allow(dead_code)]
     struct TestResetEntity(i32);
 
-    impl Sample<usize> for TestResetEntity
+    impl SampleAggregate<usize> for TestResetEntity
     {
-        fn sample(components: &[&Self]) -> usize
+        fn sample_aggregate(components: &[&Self]) -> usize
         {
             components.len()
         }

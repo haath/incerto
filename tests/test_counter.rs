@@ -12,9 +12,9 @@ struct GroupA;
 struct GroupB;
 
 /// Collect the sum of all counter values.
-impl Sample<usize> for MyCounter
+impl SampleAggregate<usize> for MyCounter
 {
-    fn sample(components: &[&Self]) -> usize
+    fn sample_aggregate(components: &[&Self]) -> usize
     {
         components.iter().map(|c| c.0).sum()
     }
@@ -143,7 +143,7 @@ fn test_counter_time_series()
         .add_entity_spawner(|spawner| {
             spawner.spawn(MyCounter(0));
         })
-        .record_time_series::<MyCounter, _>(10)
+        .record_aggregate_time_series::<MyCounter, _>(10)
         .expect("error building simulation");
 
     let mut simulation = builder.build();
@@ -151,7 +151,7 @@ fn test_counter_time_series()
     simulation.run(NUM_STEPS);
 
     let values = simulation
-        .get_time_series::<MyCounter, _>()
+        .get_aggregate_time_series::<MyCounter, _>()
         .expect("time series not recorded")
         .into_iter()
         .copied()
@@ -163,7 +163,7 @@ fn test_counter_time_series()
     simulation.run(10);
 
     let values = simulation
-        .get_time_series::<MyCounter, _>()
+        .get_aggregate_time_series::<MyCounter, _>()
         .expect("time series not recorded")
         .into_iter()
         .copied()

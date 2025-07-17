@@ -73,11 +73,11 @@ struct Trader
 #[derive(Debug, Component)]
 struct TraderNetWorth(TraderId, f64);
 
-impl Sample<HashMap<TraderId, f64>> for TraderNetWorth
+impl SampleAggregate<HashMap<TraderId, f64>> for TraderNetWorth
 {
     /// Collect the net worth values from all traders into a hash map,
     /// mapping each trader id to his corresponding net worth.
-    fn sample(components: &[&Self]) -> HashMap<TraderId, f64>
+    fn sample_aggregate(components: &[&Self]) -> HashMap<TraderId, f64>
     {
         components.iter().map(|c| (c.0, c.1)).collect()
     }
@@ -96,12 +96,12 @@ fn main() -> Result<(), SimulationError>
         // stocks
         .add_entity_spawner(spawn_stocks)
         .add_systems(stocks_price_change)
-        .record_time_series::<TraderNetWorth, _>(1)?
+        .record_aggregate_time_series::<TraderNetWorth, _>(1)?
         .build();
 
     simulation.run(SIMULATION_STEPS);
 
-    let time_series = simulation.get_time_series::<TraderNetWorth, _>()?;
+    let time_series = simulation.get_aggregate_time_series::<TraderNetWorth, _>()?;
     plot_net_worths(&time_series);
 
     Ok(())

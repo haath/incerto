@@ -49,9 +49,9 @@ impl AircraftType
 }
 
 /// Sample trait for counting aircraft
-impl Sample<usize> for Aircraft
+impl SampleAggregate<usize> for Aircraft
 {
-    fn sample(components: &[&Self]) -> usize
+    fn sample_aggregate(components: &[&Self]) -> usize
     {
         components.len()
     }

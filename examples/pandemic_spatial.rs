@@ -104,9 +104,9 @@ pub struct PandemicStats
     pub total_population: usize,
 }
 
-impl Sample<PandemicStats> for Person
+impl SampleAggregate<PandemicStats> for Person
 {
-    fn sample(components: &[&Self]) -> PandemicStats
+    fn sample_aggregate(components: &[&Self]) -> PandemicStats
     {
         assert!(!components.is_empty());
 
@@ -188,7 +188,7 @@ fn main()
             update_quarantine_status,
         ))
         // Record pandemic statistics
-        .record_time_series::<Person, PandemicStats>(SAMPLE_INTERVAL)
+        .record_aggregate_time_series::<Person, PandemicStats>(SAMPLE_INTERVAL)
         .expect("Failed to set up time series recording")
         .build();
 
@@ -234,7 +234,7 @@ fn main()
 
     // Display time series summary
     let time_series = simulation
-        .get_time_series::<Person, PandemicStats>()
+        .get_aggregate_time_series::<Person, PandemicStats>()
         .expect("Failed to get time series data");
 
     println!("\n📈 Pandemic Timeline:");

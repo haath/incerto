@@ -1,6 +1,6 @@
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{error::SampleError, plugins::TimeSeries, traits::Sample};
+use crate::{error::SampleError, plugins::TimeSeries, traits::SampleAggregate};
 
 /// Executor of monte carlo experiments.
 ///
@@ -32,7 +32,7 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample<C: Sample<Out>, Out>(&self) -> Result<Out, SampleError>
+    pub fn sample<C: SampleAggregate<Out>, Out>(&self) -> Result<Out, SampleError>
     {
         let world = self.app.world();
         let mut query = world
@@ -41,7 +41,7 @@ impl Simulation
 
         let results = query.iter(world).collect::<Vec<_>>();
 
-        Ok(C::sample(&results))
+        Ok(C::sample_aggregate(&results))
     }
 
     /// Fetch the value from a multiple entities' components in the simulation.
@@ -53,7 +53,9 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample_filtered<C: Sample<Out>, F: QueryFilter, Out>(&self) -> Result<Out, SampleError>
+    pub fn sample_filtered<C: SampleAggregate<Out>, F: QueryFilter, Out>(
+        &self,
+    ) -> Result<Out, SampleError>
     {
         let world = self.app.world();
         let mut query = world
@@ -62,7 +64,7 @@ impl Simulation
 
         let results = query.iter(world).collect::<Vec<_>>();
 
-        Ok(C::sample(&results))
+        Ok(C::sample_aggregate(&results))
     }
 
     /// Counts the number of entities in the simulation that can be selected
@@ -94,12 +96,12 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::TimeSeriesNotRecorded`]
-    pub fn get_time_series<C, O>(&self) -> Result<Vec<&O>, SampleError>
+    pub fn get_aggregate_time_series<C, O>(&self) -> Result<Vec<&O>, SampleError>
     where
-        C: Sample<O>,
+        C: SampleAggregate<O>,
         O: Send + Sync + 'static,
     {
-        self.get_time_series_filtered::<C, (), O>()
+        self.get_aggregate_time_series_filtered::<C, (), O>()
     }
 
     /// Retrieve the values of a time series that was recorded during the simulation with filtering.
@@ -110,9 +112,9 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::TimeSeriesNotRecorded`]
-    pub fn get_time_series_filtered<C, F, O>(&self) -> Result<Vec<&O>, SampleError>
+    pub fn get_aggregate_time_series_filtered<C, F, O>(&self) -> Result<Vec<&O>, SampleError>
     where
-        C: Sample<O>,
+        C: SampleAggregate<O>,
         F: QueryFilter + Send + Sync + 'static,
         O: Send + Sync + 'static,
     {

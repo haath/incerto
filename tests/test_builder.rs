@@ -7,17 +7,17 @@ struct MyValue(usize);
 #[derive(Component)]
 struct MyMarker;
 
-impl Sample<usize> for MyValue
+impl SampleAggregate<usize> for MyValue
 {
-    fn sample(components: &[&Self]) -> usize
+    fn sample_aggregate(components: &[&Self]) -> usize
     {
         components.iter().map(|c| c.0).sum()
     }
 }
 
-impl Sample<bool> for MyValue
+impl SampleAggregate<bool> for MyValue
 {
-    fn sample(components: &[&Self]) -> bool
+    fn sample_aggregate(components: &[&Self]) -> bool
     {
         components.is_empty()
     }
@@ -30,11 +30,11 @@ fn test_record_time_series_conflict()
 
     // the first call to set up the recording is expected to succeed
     builder = builder
-        .record_time_series::<MyValue, usize>(8)
+        .record_aggregate_time_series::<MyValue, usize>(8)
         .expect("first recording is expected to succeed");
 
     // the second is expected to error
-    let res = builder.record_time_series::<MyValue, usize>(12);
+    let res = builder.record_aggregate_time_series::<MyValue, usize>(12);
     let err = res.err().expect("the call above should have errored");
     assert_eq!(err, SimulationBuildError::TimeSeriesRecordingConflict);
 }
@@ -46,12 +46,12 @@ fn test_record_time_series_same_component_different_out()
 
     // the first call to set up the recording is expected to succeed
     builder = builder
-        .record_time_series::<MyValue, usize>(8)
+        .record_aggregate_time_series::<MyValue, usize>(8)
         .expect("first recording is expected to succeed");
 
     // the second is expected to also succeed due to the different output type
     builder
-        .record_time_series::<MyValue, bool>(8)
+        .record_aggregate_time_series::<MyValue, bool>(8)
         .expect("second recording is expected to succeed");
 }
 
@@ -62,11 +62,11 @@ fn test_record_time_series_same_component_same_out_different_filter()
 
     // the first call to set up the recording is expected to succeed
     builder = builder
-        .record_time_series_filtered::<MyValue, With<MyMarker>, usize>(8)
+        .record_aggregate_time_series_filtered::<MyValue, With<MyMarker>, usize>(8)
         .expect("first recording is expected to succeed");
 
     // the second is expected to also succeed due to the different output type
     builder
-        .record_time_series_filtered::<MyValue, (), usize>(8)
+        .record_aggregate_time_series_filtered::<MyValue, (), usize>(8)
         .expect("second recording is expected to succeed");
 }

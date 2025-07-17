@@ -5,10 +5,10 @@ use bevy::{
 };
 
 use crate::{
-    Sample, SimulationBuildError,
+    SampleAggregate, SimulationBuildError,
     plugins::{
-        GridBounds, GridCoordinates, SpatialGridPlugin, StepCounterPlugin, TimeSeries,
-        TimeSeriesPlugin,
+        AggregateTimeSeriesPlugin, GridBounds, GridCoordinates, SpatialGridPlugin,
+        StepCounterPlugin, TimeSeries,
     },
     prelude::{GridBounds2D, GridBounds3D},
     simulation::Simulation,
@@ -180,15 +180,15 @@ impl SimulationBuilder
     ///
     /// - The given `sample_interval` is `0`.
     #[inline]
-    pub fn record_time_series<C, O>(
+    pub fn record_aggregate_time_series<C, O>(
         self,
         sample_interval: usize,
     ) -> Result<Self, SimulationBuildError>
     where
-        C: Sample<O>,
+        C: SampleAggregate<O>,
         O: Send + Sync + 'static,
     {
-        self.record_time_series_filtered::<C, (), O>(sample_interval)
+        self.record_aggregate_time_series_filtered::<C, (), O>(sample_interval)
     }
 
     /// Sets up the recording of a time series.
@@ -212,12 +212,12 @@ impl SimulationBuilder
     /// This method will panic if:
     ///
     /// - The given `sample_interval` is `0`.
-    pub fn record_time_series_filtered<C, F, O>(
+    pub fn record_aggregate_time_series_filtered<C, F, O>(
         mut self,
         sample_interval: usize,
     ) -> Result<Self, SimulationBuildError>
     where
-        C: Sample<O>,
+        C: SampleAggregate<O>,
         F: QueryFilter + Send + Sync + 'static,
         O: Send + Sync + 'static,
     {
@@ -231,7 +231,7 @@ impl SimulationBuilder
         }
 
         self.app
-            .add_plugins(TimeSeriesPlugin::<C, F, O>::new(sample_interval));
+            .add_plugins(AggregateTimeSeriesPlugin::<C, F, O>::new(sample_interval));
         Ok(self)
     }
 

@@ -101,9 +101,9 @@ impl FireStats
 }
 
 /// Implement sampling to collect fire statistics.
-impl Sample<FireStats> for ForestCell
+impl SampleAggregate<FireStats> for ForestCell
 {
-    fn sample(components: &[&Self]) -> FireStats
+    fn sample_aggregate(components: &[&Self]) -> FireStats
     {
         assert!(!components.is_empty());
 
@@ -165,7 +165,7 @@ fn main()
         // Add regrowth system
         .add_systems(regrowth_system)
         // Record time series of fire statistics
-        .record_time_series::<ForestCell, FireStats>(SAMPLE_INTERVAL)
+        .record_aggregate_time_series::<ForestCell, FireStats>(SAMPLE_INTERVAL)
         .expect("Failed to set up time series recording")
         .build();
 
@@ -202,7 +202,7 @@ fn main()
 
     // Display time series summary
     let time_series = simulation
-        .get_time_series::<ForestCell, FireStats>()
+        .get_aggregate_time_series::<ForestCell, FireStats>()
         .expect("Failed to get time series data");
 
     println!("\n📈 Time Series Summary:");

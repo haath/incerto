@@ -30,10 +30,10 @@ struct CoinTosser
 /// 2. Implement a collector for the component values.
 ///
 /// In this case we want to collect the average odds of getting heads in a coin toss.
-impl Sample<f64> for CoinTosser
+impl SampleAggregate<f64> for CoinTosser
 {
     #[allow(clippy::cast_precision_loss)]
-    fn sample(components: &[&Self]) -> f64
+    fn sample_aggregate(components: &[&Self]) -> f64
     {
         assert!(!components.is_empty());
 
