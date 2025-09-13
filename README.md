@@ -215,11 +215,10 @@ builder.record_aggregate_time_series::<NetWorth, f64>();
 builder.record_aggregate_time_series_filtered::<NetWorth, With<BlueHair>, f64>();
 
 // 2. Collect the results from the simulation.
-let entity_net_worth: Vec<f64> = simulation.
+let bobs_net_worth_series: Vec<f64> = simulation.get_time_series::<NetWorth, _, _>(&EntityId::Bob).unwrap();
+let average_net_worth_series: Vec<f64> = simulation.get_aggregate_time_series::<NetWorth, _>().unwrap();
+let average_net_worth_series_blue_hair: Vec<f64> = simulation.get_aggregate_time_series_filtered::<NetWorth, With<BlueHair>, _>().unwrap();
 ```
-
-- Or `simulation.sample_filtered::<C, F, O>()`, with `F` being a query filter, to only sample from specific entities.
-- Record and collect time series data of values sampled from components. Call `builder.record_time_series::<C, O>()` on the builder to set up the recording, and then `simulation.get_time_series::<C, O>()` to collect the results.
 
 ## Performance
 
