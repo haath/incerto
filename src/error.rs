@@ -10,6 +10,16 @@ pub enum SimulationError
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SamplingError
 {
+    /// Expected only a single entity with the given component type in the simulation
+    /// from the call to [`crate::Simulation::sample_single`].
+    /// This error indicates that no entities were found
+    SingleNoEntities,
+
+    /// Expected only a single entity with the given component type in the simulation
+    /// from the call to [`crate::Simulation::sample_single`].
+    /// This error indicates that no entities were found
+    SingleMultipleEntities,
+
     /// The component type given was not found in the simulation.
     /// This indicates that no entity with this component was ever spawned.
     ComponentMissing,

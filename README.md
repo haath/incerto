@@ -160,7 +160,7 @@ The number of entities with a given component can be sampled at any time using `
 let num_still_alive = simulation.count::<Alive>();
 ```
 
-#### Sample
+#### Sample entity
 
 A value may be sampled from a specific entity by attaching an `Identifier` to it.
 
@@ -177,8 +177,17 @@ impl Sample<f64> for NetWorth {
     }
 }
 
-// 4. Fetch the sampled the value of the component from the simulation.
+// 4. Fetch the sampled value of the component from the simulation.
 let bobs_net_worth = simulation.sample::<NetWorth, _, _>(&EntityId::Bob);
+```
+
+#### Sample single
+
+Attaching an `Identifier` to an entity can be skipped, if it is expected that only a single entity with the `C: Sample` will exist.
+In this case it can be sampled using `sample_single()`.
+
+```rust
+let net_worth = simulation.sample_single::<NetWorth, _>();
 ```
 
 #### Sample aggregate

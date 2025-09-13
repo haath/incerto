@@ -1,4 +1,7 @@
-use bevy::{ecs::query::QueryFilter, prelude::*};
+use bevy::{
+    ecs::query::{QueryFilter, QuerySingleError},
+    prelude::*,
+};
 
 use crate::{
     Identifier, Sample, error::SamplingError, plugins::TimeSeries, traits::SampleAggregate,
@@ -33,9 +36,9 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::ComponentMissing`]
-    /// - [`SampleError::EntityIdentifierNotFound`]
-    /// - [`SampleError::EntityIdentifierNotUnique`]
+    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::EntityIdentifierNotFound`]
+    /// - [`SamplingError::EntityIdentifierNotUnique`]
     pub fn sample<C: Sample<Out>, Id: Identifier, Out>(&self, id: &Id)
     -> Result<Out, SamplingError>
     {
@@ -60,6 +63,34 @@ impl Simulation
         Ok(C::sample(component))
     }
 
+    /// Sample a single entity's component in the simulation.
+    ///
+    /// This method expects that exactly one entity exists in the simulation with
+    /// the given component `C`.
+    /// If no (or many) entities are found with this component, the corresponding
+    /// error is returned.
+    ///
+    /// # Errors
+    ///
+    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::SingleNoEntities`]
+    /// - [`SamplingError::SingleMultipleEntities`]
+    pub fn sample_single<C: Sample<Out>, Out>(&self) -> Result<Out, SamplingError>
+    {
+        let world = self.app.world();
+        let mut query = world
+            .try_query::<&C>()
+            .ok_or(SamplingError::ComponentMissing)?;
+
+        let component = query.single(world).map_err(|e| match e
+        {
+            QuerySingleError::NoEntities(_) => SamplingError::SingleNoEntities,
+            QuerySingleError::MultipleEntities(_) => SamplingError::SingleMultipleEntities,
+        })?;
+
+        Ok(C::sample(component))
+    }
+
     /// Fetch the value from a all entities' components in the simulation.
     ///
     /// This method uses the [`SampleAggregate<O>`] implementation to extract a single value
@@ -67,7 +98,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::ComponentMissing`]
+    /// - [`SamplingError::ComponentMissing`]
     pub fn sample_aggregate<C: SampleAggregate<Out>, Out>(&self) -> Result<Out, SamplingError>
     {
         let world = self.app.world();
@@ -88,7 +119,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::ComponentMissing`]
+    /// - [`SamplingError::ComponentMissing`]
     pub fn sample_aggregate_filtered<C: SampleAggregate<Out>, F: QueryFilter, Out>(
         &self,
     ) -> Result<Out, SamplingError>
@@ -111,7 +142,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::ComponentMissing`]
+    /// - [`SamplingError::ComponentMissing`]
     pub fn count<F: QueryFilter>(&self) -> Result<usize, SamplingError>
     {
         let world = self.app.world();
@@ -132,9 +163,9 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::ComponentMissing`]
-    /// - [`SampleError::EntityIdentifierNotFound`]
-    /// - [`SampleError::EntityIdentifierNotUnique`]
+    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::EntityIdentifierNotFound`]
+    /// - [`SamplingError::EntityIdentifierNotUnique`]
     pub fn get_time_series<C, Id, Out>(&self, id: &Id) -> Result<Vec<&Out>, SamplingError>
     where
         Out: Send + Sync + 'static,
@@ -171,7 +202,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::TimeSeriesNotRecorded`]
+    /// - [`SamplingError::TimeSeriesNotRecorded`]
     pub fn get_aggregate_time_series<C, Out>(&self) -> Result<Vec<&Out>, SamplingError>
     where
         C: SampleAggregate<Out>,
@@ -187,7 +218,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SampleError::TimeSeriesNotRecorded`]
+    /// - [`SamplingError::TimeSeriesNotRecorded`]
     pub fn get_aggregate_time_series_filtered<C, Filter, Out>(
         &self,
     ) -> Result<Vec<&Out>, SamplingError>
