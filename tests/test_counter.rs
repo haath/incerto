@@ -11,12 +11,23 @@ struct GroupA;
 #[derive(Component)]
 struct GroupB;
 
+#[derive(Component, PartialEq, Eq, Clone, Copy, Hash)]
+struct CounterId(usize);
+
 /// Collect the sum of all counter values.
 impl SampleAggregate<usize> for MyCounter
 {
     fn sample_aggregate(components: &[&Self]) -> usize
     {
         components.iter().map(|c| c.0).sum()
+    }
+}
+
+impl Sample<usize> for MyCounter
+{
+    fn sample(component: &Self) -> usize
+    {
+        component.0
     }
 }
 
@@ -39,13 +50,13 @@ fn test_counter()
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .sample::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .sample::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(counter, 2 * NUM_STEPS);
 }
@@ -75,7 +86,7 @@ fn test_many_counters()
     simulation.run(NUM_STEPS);
 
     let counter_sum = simulation
-        .sample::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, _>()
         .expect("expected to sample the counter sum");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);
@@ -114,17 +125,17 @@ fn test_counters_two_groups()
 
     simulation.run(NUM_STEPS);
     let all_counters_sum = simulation
-        .sample::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(all_counters_sum, 3 * NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 
     let group_a_sum = simulation
-        .sample_filtered::<MyCounter, With<GroupA>, _>()
+        .sample_aggregate_filtered::<MyCounter, With<GroupA>, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(group_a_sum, 2 * NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 
     let group_b_sum = simulation
-        .sample_filtered::<MyCounter, With<GroupB>, _>()
+        .sample_aggregate_filtered::<MyCounter, With<GroupB>, _>()
         .expect("expected to sample the counter sum");
     assert_eq!(group_b_sum, NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 }
@@ -170,4 +181,37 @@ fn test_counter_time_series()
         .collect::<Vec<_>>();
 
     assert_eq!(values, vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]);
+}
+
+#[test]
+fn test_counter_with_id()
+{
+    const NUM_STEPS: usize = 100;
+
+    let builder = SimulationBuilder::new()
+        // Increment all counters on each step by their id.
+        .add_systems(|mut query: Query<(&CounterId, &mut MyCounter)>| {
+            for (id, mut counter) in &mut query
+            {
+                counter.0 += id.0;
+            }
+        })
+        .add_entity_spawner(|spawner| {
+            spawner.spawn((MyCounter(0), CounterId(1)));
+            spawner.spawn((MyCounter(0), CounterId(5)));
+        });
+
+    let mut simulation = builder.build();
+
+    simulation.run(NUM_STEPS);
+
+    let value_id_1 = simulation
+        .sample::<MyCounter, _, _>(&CounterId(1))
+        .expect("sample error");
+    let value_id_5 = simulation
+        .sample::<MyCounter, _, _>(&CounterId(5))
+        .expect("sample error");
+
+    assert_eq!(value_id_1, NUM_STEPS);
+    assert_eq!(value_id_5, 5 * NUM_STEPS);
 }

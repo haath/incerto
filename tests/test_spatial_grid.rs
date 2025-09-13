@@ -253,7 +253,7 @@ fn test_3d_spatial_grid_integration()
 
     // Verify all entities were created
     let entity_count = simulation
-        .sample::<TestEntity3D, usize>()
+        .sample_aggregate::<TestEntity3D, usize>()
         .expect("Failed to sample TestEntity3D count");
     assert_eq!(entity_count, 4);
 }
@@ -293,7 +293,7 @@ fn test_spatial_grid_reset_functionality()
 
     // Verify entities are tracked
     let entity_count = simulation
-        .sample::<TestResetEntity, usize>()
+        .sample_aggregate::<TestResetEntity, usize>()
         .expect("Failed to sample TestResetEntity count");
     assert_eq!(entity_count, 3);
 }

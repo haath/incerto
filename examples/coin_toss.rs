@@ -87,6 +87,6 @@ fn main()
     simulation.run(SIMULATION_STEPS);
 
     // 7. Collect results from the simulation.
-    let odds_heads = simulation.sample::<CoinTosser, _>().unwrap();
+    let odds_heads = simulation.sample_aggregate::<CoinTosser, _>().unwrap();
     println!("heads odds: {:.2} %", odds_heads * 100.0);
 }

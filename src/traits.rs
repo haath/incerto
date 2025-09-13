@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use bevy::prelude::*;
 
 /// Implements the sampling of a value from components in the simulation.
 ///
-/// Needed for [`super::prelude::Simulation::sample`].
+/// Needed for [`super::prelude::Simulation::sample`] and recording aggregate time series.
 pub trait SampleAggregate<Out>: Component + Sized
 {
     /// Samples a single value of type [`Out`] from the values of all
@@ -11,3 +13,19 @@ pub trait SampleAggregate<Out>: Component + Sized
     /// and should not be relied on.
     fn sample_aggregate(components: &[&Self]) -> Out;
 }
+
+/// Implements the sampling of a value from a component in the simulation.
+///
+/// Needed for recording per-entity time series.
+pub trait Sample<Out>: Component + Sized
+{
+    /// Samples a single value of type [`Out`] from the values of a
+    /// components in the simulation.
+    fn sample(component: &Self) -> Out;
+}
+
+/// A component whose value shall be used to uniquely identify an entity.
+///
+/// Typically, this component would hold some enum value or ID number.
+/// Note that the user will need to ensure no two entities share the same [`Identifier`] value.
+pub trait Identifier: Component + Copy + Hash + Eq {}

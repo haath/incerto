@@ -2,13 +2,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimulationError
 {
-    SampleError(SampleError),
-    BuildError(SimulationBuildError),
+    Sampling(SamplingError),
+    Builder(BuilderError),
 }
 
 /// An error that occured when attempting to sample the value of a component.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SampleError
+pub enum SamplingError
 {
     /// The component type given was not found in the simulation.
     /// This indicates that no entity with this component was ever spawned.
@@ -19,34 +19,40 @@ pub enum SampleError
     /// first having called [`crate::SimulationBuilder::record_time_series`] or
     /// [`crate::SimulationBuilder::record_time_series_filtered`].
     TimeSeriesNotRecorded,
+
+    /// No entity was found in the simulation bearing the given value of the [`crate::Identifier`] component.
+    EntityIdentifierNotFound,
+
+    /// More than one entity was found in the simulation with the same value of the [`crate::Identifier`] component.
+    EntityIdentifierNotUnique,
 }
 
 /// An error that occured when building a simulation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SimulationBuildError
+pub enum BuilderError
 {
     /// The time series for the given pair of component and out types
     /// has already been set up for recording.
     TimeSeriesRecordingConflict,
 }
 
-unsafe impl Send for SampleError {}
-unsafe impl Sync for SampleError {}
-unsafe impl Send for SimulationBuildError {}
-unsafe impl Sync for SimulationBuildError {}
+unsafe impl Send for SamplingError {}
+unsafe impl Sync for SamplingError {}
+unsafe impl Send for BuilderError {}
+unsafe impl Sync for BuilderError {}
 
-impl From<SampleError> for SimulationError
+impl From<SamplingError> for SimulationError
 {
-    fn from(value: SampleError) -> Self
+    fn from(value: SamplingError) -> Self
     {
-        Self::SampleError(value)
+        Self::Sampling(value)
     }
 }
 
-impl From<SimulationBuildError> for SimulationError
+impl From<BuilderError> for SimulationError
 {
-    fn from(value: SimulationBuildError) -> Self
+    fn from(value: BuilderError) -> Self
     {
-        Self::BuildError(value)
+        Self::Builder(value)
     }
 }

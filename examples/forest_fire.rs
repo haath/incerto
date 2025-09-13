@@ -175,7 +175,7 @@ fn main()
 
     // Collect and display results
     let final_stats = simulation
-        .sample::<ForestCell, FireStats>()
+        .sample_aggregate::<ForestCell, FireStats>()
         .expect("Failed to sample fire statistics");
 
     println!("📊 Final Statistics:");

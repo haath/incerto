@@ -197,7 +197,7 @@ fn main()
 
     // Collect and display results
     let final_stats = simulation
-        .sample::<Person, PandemicStats>()
+        .sample_aggregate::<Person, PandemicStats>()
         .expect("Failed to sample pandemic statistics");
 
     println!("📊 Final Statistics:");

@@ -2,7 +2,7 @@ mod step_counter;
 pub use step_counter::StepCounterPlugin;
 
 mod time_series;
-pub use time_series::{TimeSeries, AggregateTimeSeriesPlugin};
+pub use time_series::{AggregateTimeSeriesPlugin, SampleInterval, TimeSeries, TimeSeriesPlugin};
 
 mod spatial_grid;
 pub use spatial_grid::{

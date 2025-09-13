@@ -6,7 +6,6 @@ Rust crate for heavyweight multi-threaded Monte Carlo simulations.
 
 [![](assets/trader_net_worths.png)](examples/traders.rs)
 
-
 ## Installation
 
 The crate can be installed from [crates.io](https://crates.io/crates/incerto).
@@ -19,7 +18,6 @@ bevy = { version = "0.16", default-features = false }
 incerto = "*"
 ```
 
-
 ## Usage
 
 This crate is powered by [Bevy](https://github.com/bevyengine/bevy), which is a high-performance ECS framework.
@@ -31,7 +29,6 @@ In-depth knowledge of Bevy's internals is not required however, since we have ab
 - Define components.
 - Spawn entities, each a collection of one or more components.
 - Implement systems that update the entities on each simulation step.
-
 
 ```rust
 use incerto::prelude::*;
@@ -49,7 +46,6 @@ let simulation: Simulation = SimulationBuilder::new()
 
 It is recommended to start with the [examples](examples/).
 
-
 #### Define components
 
 Components will be the primary data type in the simulation.
@@ -63,7 +59,7 @@ struct Counter
 }
 ```
 
-Empty components, typically called *Markers*, are also sometimes useful to pick out specific entities.
+Empty components, typically called _Markers_, are also sometimes useful to pick out specific entities.
 
 ```rust
 #[derive(Component)]
@@ -72,7 +68,6 @@ struct GroupA;
 #[derive(Component)]
 struct GroupB;
 ```
-
 
 #### Spawn entities
 
@@ -100,7 +95,6 @@ fn spawn_coin_tossers_in_groups(spawner: &mut Spawner)
     }
 }
 ```
-
 
 #### Implement systems
 
@@ -144,7 +138,6 @@ fn multiple_queries(
 ) { ... }
 ```
 
-
 #### Running the simulation
 
 The simulation may be executed using the `run()`, method.
@@ -157,16 +150,76 @@ simulation.run(100);
 simulation.run(200);
 ```
 
+### Collecting results
 
-#### Collecting results
+#### Counting entities
 
-Currently the following ways of fetching simulation results are supported.
+The number of entities with a given component can be sampled at any time using `count()`.
 
-- Count the number of entities with a component `C` by calling `simulation.count::<C>()`.
-- Read out a value aggregated from multiple existing entities with component `C` by implementing `Sample<O>` for `C` and then calling `simulation.sample::<C, O>()`. This will return the single value of type `O` prepared by the implementation of the trait.
-    - Or `simulation.sample_filtered::<C, F, O>()`, with `F` being a query filter, to only sample from specific entities.
+```rust
+let num_still_alive = simulation.count::<Alive>();
+```
+
+#### Sample
+
+A value may be sampled from a specific entity by attaching an `Identifier` to it.
+
+```rust
+// 1. Blanket implementation for Identifier exists for any: Component + Copy + Eq + Hash
+#[derive(Component, Clone, Copy, PartialEq, Eq, Hash)]
+enum EntityId { Bob, Alice }
+
+// 2. Implement this trait for the component to be sampled.
+impl Sample<f64> for NetWorth {
+    fn sample(component: &Self) -> f64 {
+        // 3. Sample the value of the component as needed.
+        component.value
+    }
+}
+
+// 4. Fetch the sampled the value of the component from the simulation.
+let bobs_net_worth = simulation.sample::<NetWorth, _, _>(&EntityId::Bob);
+```
+
+#### Sample aggregate
+
+A value may be sampled as the aggregate from many components in the simulation.
+
+```rust
+// 1. Implement this trait for the component to be sampled.
+impl SampleAggregate<f64> for NetWorth {
+    fn sample_aggregate(components: &[&Self]) -> f64 {
+        // 2. Aggregate the values of all components as needed.
+        components.map(|nw| nw.value).mean()
+    }
+}
+
+// 3. Sample the aggregate value from the simulation.
+let average_net_worth = simulation.sample_aggregate::<NetWorth, _>();
+
+//    ... or with a filter
+let average_net_worth_blue_hair = simulation.sample_aggregate_filtered::<NetWorth, With<BlueHair>, _>();
+```
+
+#### Time series
+
+Collecting a time series from the simulation is similar to the sampling described above.
+The component to be sampled into the time series still needs to implement either `Sample` or `SampleAggregate` depending on whether the sampling is done per-entity or in aggregate.
+
+The difference is that the recording of time series values needs to be set up on the `SimulationBuilder`.
+
+```rust
+// 1. Set up the time series recording as needed.
+builder.record_time_series::<NetWorth, EntityId, f64>();
+builder.record_aggregate_time_series::<NetWorth, f64>();
+builder.record_aggregate_time_series_filtered::<NetWorth, With<BlueHair>, f64>();
+
+// 2. Collect the results from the simulation.
+let entity_net_worth: Vec<f64> = simulation.
+```
+
+- Or `simulation.sample_filtered::<C, F, O>()`, with `F` being a query filter, to only sample from specific entities.
 - Record and collect time series data of values sampled from components. Call `builder.record_time_series::<C, O>()` on the builder to set up the recording, and then `simulation.get_time_series::<C, O>()` to collect the results.
-
 
 ## Performance
 
@@ -178,27 +231,25 @@ And given that this crate adds practically no runtime overhead, your monte carlo
 You get to enjoy all the performance gains of the ECS automatically. However there are a few things you may want to keep in mind.
 
 - **Temporal granularity:**
-    This is just a fancy way of saying `how much time is each simulated step?`. The crate itself makes no mention of time, and treats each simulation as a series of discrete equitemporal steps. Whether each step represents one minute, one hour, or one day, is up to the user and likely contextual to the kind of experiment being conducted. For example, each step might represent one hour when modelling the weather, or one day when modelling pandemic infection rates.
-    As such, there are great performance gains to be found by moving up a level in granularity. If you can manage to model the changes in the simulation in 5-minute steps instead of 1-minute steps, the simulation will magically run in one fifth of the time!
+  This is just a fancy way of saying `how much time is each simulated step?`. The crate itself makes no mention of time, and treats each simulation as a series of discrete equitemporal steps. Whether each step represents one minute, one hour, or one day, is up to the user and likely contextual to the kind of experiment being conducted. For example, each step might represent one hour when modelling the weather, or one day when modelling pandemic infection rates.
+  As such, there are great performance gains to be found by moving up a level in granularity. If you can manage to model the changes in the simulation in 5-minute steps instead of 1-minute steps, the simulation will magically run in one fifth of the time!
 - **System parallelization:**
-    Bevy's scheduler will automatically place disjoint systems on separate threads whenever possible.
-    Two systems are disjoint when one's queries do not mutate components that the other is also accessing.
-    The rule of thumb to achieve this whenever possible, is to design each system such that:
-    - It has a singular purpose.
-    - Only queries for components that it definitely needs.
+  Bevy's scheduler will automatically place disjoint systems on separate threads whenever possible.
+  Two systems are disjoint when one's queries do not mutate components that the other is also accessing.
+  The rule of thumb to achieve this whenever possible, is to design each system such that:
+  - It has a singular purpose.
+  - Only queries for components that it definitely needs.
 - **Singular components:**
-    It may be tempting to simplify entity design by putting all of an entity's data in a single component, especially if one is used to object-oriented languages. However, doing so will impact your performance in the long term since it would render system parallelization neigh impossible.
-    The general recommendation is to favor composition, meaning that each distinct attribute of an entity should be in a separate component. Imagine, for example, how since a person's age and body temperature are largely independent, systems attempting to read or update these values should be allowed to run in parallel.
+  It may be tempting to simplify entity design by putting all of an entity's data in a single component, especially if one is used to object-oriented languages. However, doing so will impact your performance in the long term since it would render system parallelization neigh impossible.
+  The general recommendation is to favor composition, meaning that each distinct attribute of an entity should be in a separate component. Imagine, for example, how since a person's age and body temperature are largely independent, systems attempting to read or update these values should be allowed to run in parallel.
 - **Entity archetypes:**
-    Bevy likes to put similar-looking entities together in groups called *archetypes*, which enables it to more efficiently store such entities in shared tables. So if components are added to or removed from existing entities at runtime the archetype tables have to be remade, which is a drain on performance.
-    So in case where an entity's state needs to change often in the simulation, consider using persistent enums instead.
-
+  Bevy likes to put similar-looking entities together in groups called _archetypes_, which enables it to more efficiently store such entities in shared tables. So if components are added to or removed from existing entities at runtime the archetype tables have to be remade, which is a drain on performance.
+  So in case where an entity's state needs to change often in the simulation, consider using persistent enums instead.
 
 ## Planned work
 
 - Add some utilities to the crate for easy access to random values, noise etc
 - Add some support for data plotting.
-
 
 ## Credits
 

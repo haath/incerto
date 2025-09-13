@@ -1,6 +1,8 @@
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{error::SampleError, plugins::TimeSeries, traits::SampleAggregate};
+use crate::{
+    Identifier, Sample, error::SamplingError, plugins::TimeSeries, traits::SampleAggregate,
+};
 
 /// Executor of monte carlo experiments.
 ///
@@ -24,20 +26,54 @@ impl Simulation
         }
     }
 
-    /// Fetch the value from a all entities' components in the simulation.
+    /// Fetch the value from a specific entity's component in the simulation.
     ///
     /// This method uses the [`Sample<O>`] implementation to extract a single value
+    /// of type `O` from a specific entity identified by `id` and return it.
+    ///
+    /// # Errors
+    ///
+    /// - [`SampleError::ComponentMissing`]
+    /// - [`SampleError::EntityIdentifierNotFound`]
+    /// - [`SampleError::EntityIdentifierNotUnique`]
+    pub fn sample<C: Sample<Out>, Id: Identifier, Out>(&self, id: &Id)
+    -> Result<Out, SamplingError>
+    {
+        let world = self.app.world();
+        let mut query = world
+            .try_query::<(&C, &Id)>()
+            .ok_or(SamplingError::ComponentMissing)?;
+
+        let mut result_iter = query.iter(world).filter(|&(_, entity_id)| entity_id == id);
+
+        // sample the component of the first entity
+        let (component, _) = result_iter
+            .next()
+            .ok_or(SamplingError::EntityIdentifierNotFound)?;
+
+        // there should not be any more entities with the same ID
+        if result_iter.next().is_some()
+        {
+            return Err(SamplingError::EntityIdentifierNotUnique);
+        }
+
+        Ok(C::sample(component))
+    }
+
+    /// Fetch the value from a all entities' components in the simulation.
+    ///
+    /// This method uses the [`SampleAggregate<O>`] implementation to extract a single value
     /// of type `O` from all of the existing components and return it.
     ///
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample<C: SampleAggregate<Out>, Out>(&self) -> Result<Out, SampleError>
+    pub fn sample_aggregate<C: SampleAggregate<Out>, Out>(&self) -> Result<Out, SamplingError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query::<&C>()
-            .ok_or(SampleError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
@@ -46,21 +82,21 @@ impl Simulation
 
     /// Fetch the value from a multiple entities' components in the simulation.
     ///
-    /// This method uses the [`Sample<O>`] implementation to extract a single value
+    /// This method uses the [`SampleAggregate<O>`] implementation to extract a single value
     /// of type `O` from all of the components on entities selected with
     /// the filter `F`, and return it.
     ///
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn sample_filtered<C: SampleAggregate<Out>, F: QueryFilter, Out>(
+    pub fn sample_aggregate_filtered<C: SampleAggregate<Out>, F: QueryFilter, Out>(
         &self,
-    ) -> Result<Out, SampleError>
+    ) -> Result<Out, SamplingError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query_filtered::<&C, F>()
-            .ok_or(SampleError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentMissing)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
 
@@ -76,52 +112,94 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SampleError::ComponentMissing`]
-    pub fn count<F: QueryFilter>(&self) -> Result<usize, SampleError>
+    pub fn count<F: QueryFilter>(&self) -> Result<usize, SamplingError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query_filtered::<(), F>()
-            .ok_or(SampleError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentMissing)?;
 
         let count = query.iter(world).count();
 
         Ok(count)
     }
 
-    /// Retrieve the values of a time series that was recorded during the simulation.
+    /// Retrieve the values of a time series that was recorded during the simulation on
+    /// a specific entity identified by `id`.
     ///
     /// This is possible only after having called [`crate::SimulationBuilder::record_time_series`]
     /// during the construction of the simulation.
     ///
     /// # Errors
     ///
-    /// - [`SampleError::TimeSeriesNotRecorded`]
-    pub fn get_aggregate_time_series<C, O>(&self) -> Result<Vec<&O>, SampleError>
+    /// - [`SampleError::ComponentMissing`]
+    /// - [`SampleError::EntityIdentifierNotFound`]
+    /// - [`SampleError::EntityIdentifierNotUnique`]
+    pub fn get_time_series<C, Id, Out>(&self, id: &Id) -> Result<Vec<&Out>, SamplingError>
     where
-        C: SampleAggregate<O>,
-        O: Send + Sync + 'static,
+        Out: Send + Sync + 'static,
+        C: Sample<Out>,
+        Id: Identifier,
     {
-        self.get_aggregate_time_series_filtered::<C, (), O>()
+        let world = self.app.world();
+        let mut query = world
+            .try_query::<(&TimeSeries<C, Id, Out>, &Id)>()
+            .ok_or(SamplingError::ComponentMissing)?;
+
+        let mut result_iter = query.iter(world).filter(|&(_, entity_id)| entity_id == id);
+
+        // fetch the time series of the first entity
+        let (time_series, _) = result_iter
+            .next()
+            .ok_or(SamplingError::EntityIdentifierNotFound)?;
+
+        // there should not be any more entities with the same ID
+        if result_iter.next().is_some()
+        {
+            return Err(SamplingError::EntityIdentifierNotUnique);
+        }
+
+        let values = time_series.values.iter().by_ref().collect();
+
+        Ok(values)
     }
 
-    /// Retrieve the values of a time series that was recorded during the simulation with filtering.
+    /// Retrieve the values of a time series that was recorded during the simulation.
     ///
-    /// This is possible only after having called [`crate::SimulationBuilder::record_time_series_filtered`]
+    /// This is possible only after having called [`crate::SimulationBuilder::record_aggregate_time_series`]
     /// during the construction of the simulation.
     ///
     /// # Errors
     ///
     /// - [`SampleError::TimeSeriesNotRecorded`]
-    pub fn get_aggregate_time_series_filtered<C, F, O>(&self) -> Result<Vec<&O>, SampleError>
+    pub fn get_aggregate_time_series<C, Out>(&self) -> Result<Vec<&Out>, SamplingError>
     where
-        C: SampleAggregate<O>,
-        F: QueryFilter + Send + Sync + 'static,
-        O: Send + Sync + 'static,
+        C: SampleAggregate<Out>,
+        Out: Send + Sync + 'static,
+    {
+        self.get_aggregate_time_series_filtered::<C, (), Out>()
+    }
+
+    /// Retrieve the values of a time series that was recorded during the simulation with filtering.
+    ///
+    /// This is possible only after having called [`crate::SimulationBuilder::record_aggregate_time_series_filtered`]
+    /// during the construction of the simulation.
+    ///
+    /// # Errors
+    ///
+    /// - [`SampleError::TimeSeriesNotRecorded`]
+    pub fn get_aggregate_time_series_filtered<C, Filter, Out>(
+        &self,
+    ) -> Result<Vec<&Out>, SamplingError>
+    where
+        C: SampleAggregate<Out>,
+        Filter: QueryFilter + Send + Sync + 'static,
+        Out: Send + Sync + 'static,
     {
         let world = self.app.world();
         let time_series = world
-            .get_resource::<TimeSeries<C, F, O>>()
-            .ok_or(SampleError::TimeSeriesNotRecorded)?;
+            .get_resource::<TimeSeries<C, Filter, Out>>()
+            .ok_or(SamplingError::TimeSeriesNotRecorded)?;
 
         let values = time_series.values.iter().by_ref().collect();
 

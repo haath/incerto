@@ -36,7 +36,7 @@ fn test_record_time_series_conflict()
     // the second is expected to error
     let res = builder.record_aggregate_time_series::<MyValue, usize>(12);
     let err = res.err().expect("the call above should have errored");
-    assert_eq!(err, SimulationBuildError::TimeSeriesRecordingConflict);
+    assert_eq!(err, BuilderError::TimeSeriesRecordingConflict);
 }
 
 #[test]

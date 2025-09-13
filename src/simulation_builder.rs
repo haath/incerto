@@ -5,10 +5,10 @@ use bevy::{
 };
 
 use crate::{
-    SampleAggregate, SimulationBuildError,
+    BuilderError, Identifier, Sample, SampleAggregate,
     plugins::{
-        AggregateTimeSeriesPlugin, GridBounds, GridCoordinates, SpatialGridPlugin,
-        StepCounterPlugin, TimeSeries,
+        AggregateTimeSeriesPlugin, GridBounds, GridCoordinates, SampleInterval, SpatialGridPlugin,
+        StepCounterPlugin, TimeSeries, TimeSeriesPlugin,
     },
     prelude::{GridBounds2D, GridBounds3D},
     simulation::Simulation,
@@ -141,7 +141,7 @@ impl SimulationBuilder
 
     /// Add an entity spawner function to the simulation.
     ///
-    /// In the beginning of ever simulation, each of the spawner functions added here
+    /// In the beginning of every simulation, each of the spawner functions added here
     /// will get called once. The [`Spawner`] that is passed as an argument shall be used
     /// to spawn entities into the simulation.
     ///
@@ -161,14 +161,62 @@ impl SimulationBuilder
     /// Sets up the recording of a time series.
     ///
     /// The values in the time series will be values of type `O`
+    /// sampled from components `C`, on any entities identified by `I`
+    /// in the simulation according to the implementation of [`Sample<O>`] for `C`.
+    ///
+    /// The sampling will occur once every `sample_interval` steps.
+    /// Specifically at the end of the step, after all user-defined systems have run.
+    ///
+    /// Note that it is currently not allowed to record more than one time series
+    /// with the same pair of component (`C`),value (`O`), and identifier (`I`).
+    ///
+    /// For more details see the documentation of:
+    /// * [`Sample`]
+    /// * [`Identifier`]
+    ///
+    /// # Errors
+    ///
+    /// - [`SimulationBuildError::TimeSeriesRecordingConflict`]
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if:
+    ///
+    /// - The given `sample_interval` is `0`.
+    pub fn record_time_series<C, I, O>(
+        mut self,
+        sample_interval: usize,
+    ) -> Result<Self, BuilderError>
+    where
+        C: Sample<O>,
+        I: Identifier,
+        O: Send + Sync + 'static,
+    {
+        assert!(sample_interval > 0);
+
+        let world = self.app.world();
+        if world.get_resource::<SampleInterval<C, I, O>>().is_some()
+        {
+            // More than one time series recording for the same C, F, O is not possible.
+            return Err(BuilderError::TimeSeriesRecordingConflict);
+        }
+
+        self.app
+            .add_plugins(TimeSeriesPlugin::<C, I, O>::new(sample_interval));
+        Ok(self)
+    }
+
+    /// Sets up the recording of an aggregate time series.
+    ///
+    /// The values in the time series will be values of type `O`
     /// sampled from all components `C` in the simulation according to the
-    /// implementation of [`Sample<O>`] for `C`.
+    /// implementation of [`SampleAggregate<O>`] for `C`.
     ///
     /// The sampling will occur once every `sample_interval` steps.
     /// Specifically at the end of the step, after all user-defined systems have run.
     ///
     /// Note that it is currently not possible to record more than one time series
-    /// with the same pair of component (`C`) and value (`O`).
+    /// with the same pair of component (`C`),value (`O`), and filter (`F`).
     ///
     /// # Errors
     ///
@@ -183,7 +231,7 @@ impl SimulationBuilder
     pub fn record_aggregate_time_series<C, O>(
         self,
         sample_interval: usize,
-    ) -> Result<Self, SimulationBuildError>
+    ) -> Result<Self, BuilderError>
     where
         C: SampleAggregate<O>,
         O: Send + Sync + 'static,
@@ -191,17 +239,17 @@ impl SimulationBuilder
         self.record_aggregate_time_series_filtered::<C, (), O>(sample_interval)
     }
 
-    /// Sets up the recording of a time series.
+    /// Sets up the recording of an aggregate time series.
     ///
     /// The values in the time series will be values of type `O`
     /// sampled from components `C`, from all entities selected by the filter `F`
-    /// in the simulation according to the implementation of [`Sample<O>`] for `C`.
+    /// in the simulation according to the implementation of [`SampleAggregate<O>`] for `C`.
     ///
     /// The sampling will occur once every `sample_interval` steps.
     /// Specifically at the end of the step, after all user-defined systems have run.
     ///
-    /// Note that it is currently not possible to record more than one time series
-    /// with the same pair of component (`C`) and value (`O`).
+    /// Note that it is currently not allowed to record more than one time series
+    /// with the same pair of component (`C`),value (`O`), and filter (`F`).
     ///
     /// # Errors
     ///
@@ -215,7 +263,7 @@ impl SimulationBuilder
     pub fn record_aggregate_time_series_filtered<C, F, O>(
         mut self,
         sample_interval: usize,
-    ) -> Result<Self, SimulationBuildError>
+    ) -> Result<Self, BuilderError>
     where
         C: SampleAggregate<O>,
         F: QueryFilter + Send + Sync + 'static,
@@ -227,7 +275,7 @@ impl SimulationBuilder
         if world.get_resource::<TimeSeries<C, F, O>>().is_some()
         {
             // More than one time series recording for the same C, F, O is not possible.
-            return Err(SimulationBuildError::TimeSeriesRecordingConflict);
+            return Err(BuilderError::TimeSeriesRecordingConflict);
         }
 
         self.app

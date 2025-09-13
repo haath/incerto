@@ -20,6 +20,7 @@ mod plugins;
 mod simulation;
 mod simulation_builder;
 mod spawner;
+mod trait_blankets;
 mod traits;
 
 pub use error::*;

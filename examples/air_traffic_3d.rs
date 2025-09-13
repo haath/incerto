@@ -226,7 +226,7 @@ fn main()
         if step.is_multiple_of(10)
         {
             let aircraft_count = simulation
-                .sample::<Aircraft, usize>()
+                .sample_aggregate::<Aircraft, usize>()
                 .expect("Failed to sample aircraft count");
             println!("   📊 Total aircraft tracked: {aircraft_count}");
         }
@@ -238,7 +238,7 @@ fn main()
     println!("\n✅ Air Traffic Control simulation completed!");
 
     let final_count = simulation
-        .sample::<Aircraft, usize>()
+        .sample_aggregate::<Aircraft, usize>()
         .expect("Failed to sample final aircraft count");
     println!("📈 Final aircraft count: {final_count}");
 }
