@@ -50,13 +50,13 @@ fn test_counter()
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .sample_aggregate::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, usize>()
         .expect("expected to sample the counter sum");
     assert_eq!(counter, NUM_STEPS);
 
     simulation.run(NUM_STEPS);
     let counter = simulation
-        .sample_aggregate::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, usize>()
         .expect("expected to sample the counter sum");
     assert_eq!(counter, 2 * NUM_STEPS);
 }
@@ -86,7 +86,7 @@ fn test_many_counters()
     simulation.run(NUM_STEPS);
 
     let counter_sum = simulation
-        .sample_aggregate::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, usize>()
         .expect("expected to sample the counter sum");
 
     assert_eq!(counter_sum, NUM_STEPS * NUM_COUNTERS);
@@ -125,19 +125,37 @@ fn test_counters_two_groups()
 
     simulation.run(NUM_STEPS);
     let all_counters_sum = simulation
-        .sample_aggregate::<MyCounter, _>()
+        .sample_aggregate::<MyCounter, usize>()
         .expect("expected to sample the counter sum");
     assert_eq!(all_counters_sum, 3 * NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 
     let group_a_sum = simulation
-        .sample_aggregate_filtered::<MyCounter, With<GroupA>, _>()
+        .sample_aggregate_filtered::<MyCounter, With<GroupA>, usize>()
         .expect("expected to sample the counter sum");
     assert_eq!(group_a_sum, 2 * NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 
     let group_b_sum = simulation
-        .sample_aggregate_filtered::<MyCounter, With<GroupB>, _>()
+        .sample_aggregate_filtered::<MyCounter, With<GroupB>, usize>()
         .expect("expected to sample the counter sum");
     assert_eq!(group_b_sum, NUM_STEPS * NUM_COUNTERS_PER_GROUP);
+
+    let min_count = simulation
+        .sample_aggregate::<MyCounter, Option<Minimum<_>>>()
+        .expect("expected to sample counter minimum")
+        .expect("expected at least one counter value");
+    assert_eq!(*min_count, NUM_STEPS);
+
+    let max_count = simulation
+        .sample_aggregate::<MyCounter, Option<Maximum<_>>>()
+        .expect("expected to sample counter maximum")
+        .expect("expected at least one counter value");
+    assert_eq!(*max_count, 2 * NUM_STEPS);
+
+    let mean_count = simulation
+        .sample_aggregate::<MyCounter, Option<Mean<_>>>()
+        .expect("expected to sample counter mean")
+        .expect("expected at least one counter value");
+    assert_eq!(*mean_count, 3 * NUM_STEPS / 2);
 }
 
 #[test]
@@ -154,7 +172,7 @@ fn test_counter_time_series()
         .add_entity_spawner(|spawner| {
             spawner.spawn(MyCounter(0));
         })
-        .record_aggregate_time_series::<MyCounter, _>(10)
+        .record_aggregate_time_series::<MyCounter, usize>(10)
         .expect("error building simulation");
 
     let mut simulation = builder.build();
@@ -162,7 +180,7 @@ fn test_counter_time_series()
     simulation.run(NUM_STEPS);
 
     let values = simulation
-        .get_aggregate_time_series::<MyCounter, _>()
+        .get_aggregate_time_series::<MyCounter, usize>()
         .expect("time series not recorded")
         .into_iter()
         .copied()
@@ -174,7 +192,7 @@ fn test_counter_time_series()
     simulation.run(10);
 
     let values = simulation
-        .get_aggregate_time_series::<MyCounter, _>()
+        .get_aggregate_time_series::<MyCounter, usize>()
         .expect("time series not recorded")
         .into_iter()
         .copied()

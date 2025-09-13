@@ -20,8 +20,8 @@ mod plugins;
 mod simulation;
 mod simulation_builder;
 mod spawner;
-mod trait_blankets;
 mod traits;
+mod util;
 
 pub use error::*;
 pub use plugins::{GridBounds, GridPosition, SpatialGrid};
@@ -29,3 +29,4 @@ pub use simulation::Simulation;
 pub use simulation_builder::SimulationBuilder;
 pub use spawner::Spawner;
 pub use traits::*;
+pub use util::*;

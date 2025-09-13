@@ -157,7 +157,8 @@ simulation.run(200);
 The number of entities with a given component can be sampled at any time using `count()`.
 
 ```rust
-let num_still_alive = simulation.count::<Alive>();
+let num_still_alive = simulation.count::<With<Alive>>();
+let num_still_healthy = simulation.count::<(With<Alive>, Without<Sick>)>();
 ```
 
 #### Sample entity
