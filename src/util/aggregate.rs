@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::BinaryHeap};
 
 use bevy::prelude::Deref;
 
@@ -26,6 +26,16 @@ pub struct Minimum<T>(T);
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Maximum<T>(T);
 
+/// Utility aggregator that computes the median value.
+///
+/// Implemented automatically for any numeric type `T` such as [`i16`], [`f32`], etc.
+///
+/// ```ignore
+/// let median = simulation.sample_aggregate::<MyComponent, Option<Median<f32>>>().unwrap();
+/// ```
+#[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
+pub struct Median<T>(T);
+
 /// Utility aggregator that computes the mean value.
 ///
 /// Implemented automatically for any numeric type `T` such as [`i16`], [`f32`], etc.
@@ -42,7 +52,7 @@ pub struct Mean<T>(T);
 impl<T, O> SampleAggregate<Option<Minimum<O>>> for T
 where
     T: Sample<O>,
-    O: PartialOrd + Clone + Copy,
+    O: PartialOrd + Copy,
 {
     fn sample_aggregate(components: &[&Self]) -> Option<Minimum<O>>
     {
@@ -63,7 +73,7 @@ where
 impl<T, O> SampleAggregate<Option<Maximum<O>>> for T
 where
     T: Sample<O>,
-    O: PartialOrd + Clone + Copy,
+    O: PartialOrd + Copy,
 {
     fn sample_aggregate(components: &[&Self]) -> Option<Maximum<O>>
     {
@@ -120,3 +130,64 @@ blanket_impl_sample_aggr_mean!(i64);
 blanket_impl_sample_aggr_mean!(i128);
 blanket_impl_sample_aggr_mean!(f32);
 blanket_impl_sample_aggr_mean!(f64);
+
+macro_rules! blanket_impl_sample_aggr_median_int {
+    ($t: tt) => {
+        impl<T> SampleAggregate<Option<Median<$t>>> for T
+        where
+            T: Sample<$t>,
+        {
+            fn sample_aggregate(components: &[&Self]) -> Option<Median<$t>>
+            {
+                if components.is_empty()
+                {
+                    return None;
+                }
+
+                let sorted: BinaryHeap<_> = components.iter().map(|&c| Sample::sample(c)).collect();
+                let sorted = sorted.as_slice();
+                let median = sorted[sorted.len() / 2];
+                Some(Median(median))
+            }
+        }
+    };
+}
+blanket_impl_sample_aggr_median_int!(usize);
+blanket_impl_sample_aggr_median_int!(u8);
+blanket_impl_sample_aggr_median_int!(u16);
+blanket_impl_sample_aggr_median_int!(u32);
+blanket_impl_sample_aggr_median_int!(u64);
+blanket_impl_sample_aggr_median_int!(u128);
+blanket_impl_sample_aggr_median_int!(i8);
+blanket_impl_sample_aggr_median_int!(i16);
+blanket_impl_sample_aggr_median_int!(i32);
+blanket_impl_sample_aggr_median_int!(i64);
+blanket_impl_sample_aggr_median_int!(i128);
+
+macro_rules! blanket_impl_sample_aggr_median_float {
+    ($t: tt) => {
+        impl<T> SampleAggregate<Option<Median<$t>>> for T
+        where
+            T: Sample<$t>,
+        {
+            fn sample_aggregate(components: &[&Self]) -> Option<Median<$t>>
+            {
+                if components.is_empty()
+                {
+                    return None;
+                }
+
+                let sorted: BinaryHeap<_> = components
+                    .iter()
+                    .map(|&c| Sample::sample(c))
+                    .map(|f| ordered_float::OrderedFloat(f))
+                    .collect();
+                let sorted = sorted.as_slice();
+                let median = sorted[sorted.len() / 2];
+                Some(Median(*median))
+            }
+        }
+    };
+}
+blanket_impl_sample_aggr_median_float!(f32);
+blanket_impl_sample_aggr_median_float!(f64);

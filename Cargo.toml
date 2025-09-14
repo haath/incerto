@@ -20,6 +20,7 @@ categories = [
 bevy = { version = "0.16", default-features = false, features = [
     "multi_threaded",
 ] }
+ordered-float = { version = "5.0" }
 
 
 [dev-dependencies]
