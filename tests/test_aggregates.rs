@@ -58,6 +58,18 @@ fn test_aggregates_int()
         .expect("expected to sample counter median")
         .expect("expected at least one counter value");
     assert_eq!(*median, 11);
+
+    let percentile_10 = simulation
+        .sample_aggregate::<Item, Option<Percentile<_, 10>>>()
+        .expect("expected to sample counter median")
+        .expect("expected at least one counter value");
+    assert_eq!(*percentile_10, 3);
+
+    let percentile_70 = simulation
+        .sample_aggregate::<Item, Option<Percentile<_, 70>>>()
+        .expect("expected to sample counter median")
+        .expect("expected at least one counter value");
+    assert_eq!(*percentile_70, 15);
 }
 
 #[test]
@@ -98,4 +110,10 @@ fn test_aggregates_float()
         .expect("expected to sample counter median")
         .expect("expected at least one counter value");
     assert_eq!(*median, 11.0);
+
+    let percentile_30 = simulation
+        .sample_aggregate::<ItemFloat, Option<Percentile<_, 30>>>()
+        .expect("expected to sample counter median")
+        .expect("expected at least one counter value");
+    assert_eq!(*percentile_30, 7.0);
 }

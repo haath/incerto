@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, collections::BinaryHeap, fmt::Display};
+use std::{
+    cmp::Ordering,
+    collections::BinaryHeap,
+    fmt::{Debug, Display},
+};
 
 use bevy::prelude::Deref;
 
@@ -49,6 +53,17 @@ pub struct Median<T>(T);
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Mean<T>(T);
 
+/// Utility aggregator that computes the **P-th percentile** value.
+///
+/// The percentile is selected via the parameter `P`.
+/// The aggregated value is the one, where `P%` of all samples are at or below it.
+///
+/// ```ignore
+/// let tength_percentile = simulation.sample_aggregate::<MyComponent, Option<Percentile<f32, 10>>>().unwrap();
+/// ```
+#[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
+pub struct Percentile<T, const P: u8>(T);
+
 // ===========================================================
 //              Blanket implementations
 // ===========================================================
@@ -94,6 +109,62 @@ where
     }
 }
 
+impl<O, const P: u8> Percentile<O, P>
+{
+    const PERCENTAGE: f64 = (P as f64) / 100.0;
+    const _ASSERT: () = assert!(P <= 100, "percentile must be between 0 and 100");
+}
+impl<T, O, const P: u8> SampleAggregate<Option<Percentile<O, P>>> for T
+where
+    T: Sample<O>,
+    O: PartialEq + PartialOrd + Copy + Display + Debug,
+{
+    #[allow(clippy::cast_precision_loss)]
+    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_possible_truncation)]
+    fn sample_aggregate(components: &[&Self]) -> Option<Percentile<O, P>>
+    {
+        if components.is_empty()
+        {
+            return None;
+        }
+
+        let sorted: BinaryHeap<_> = components
+            .iter()
+            .map(|&c| Sample::sample(c))
+            .map(|v| sealed::Ordered(v))
+            .collect();
+        let sorted = sorted.into_sorted_vec();
+
+        let idx = (Percentile::<O, P>::PERCENTAGE * sorted.len() as f64).floor();
+        let value = sorted[idx as usize];
+        Some(Percentile(*value))
+    }
+}
+
+impl<T, O> SampleAggregate<Option<Median<O>>> for T
+where
+    T: Sample<O>,
+    O: PartialEq + PartialOrd + Copy + Display,
+{
+    fn sample_aggregate(components: &[&Self]) -> Option<Median<O>>
+    {
+        if components.is_empty()
+        {
+            return None;
+        }
+
+        let sorted: BinaryHeap<_> = components
+            .iter()
+            .map(|&c| Sample::sample(c))
+            .map(|v| sealed::Ordered(v))
+            .collect();
+        let sorted = sorted.into_sorted_vec();
+        let median = sorted[sorted.len() / 2];
+        Some(Median(*median))
+    }
+}
+
 macro_rules! blanket_impl_sample_aggr_mean {
     ($t: tt) => {
         impl<T> SampleAggregate<Option<Mean<$t>>> for T
@@ -134,29 +205,6 @@ blanket_impl_sample_aggr_mean!(i128);
 blanket_impl_sample_aggr_mean!(f32);
 blanket_impl_sample_aggr_mean!(f64);
 
-impl<T, O> SampleAggregate<Option<Median<O>>> for T
-where
-    T: Sample<O>,
-    O: PartialEq + PartialOrd + Copy + Display,
-{
-    fn sample_aggregate(components: &[&Self]) -> Option<Median<O>>
-    {
-        if components.is_empty()
-        {
-            return None;
-        }
-
-        let sorted: BinaryHeap<_> = components
-            .iter()
-            .map(|&c| Sample::sample(c))
-            .map(|v| sealed::Ordered(v))
-            .collect();
-        let sorted = sorted.as_slice();
-        let median = sorted[sorted.len() / 2];
-        Some(Median(*median))
-    }
-}
-
 mod sealed
 {
     use std::fmt::Display;
@@ -165,7 +213,7 @@ mod sealed
 
     /// Hidden type used for the implementation of some aggregate functions that require [`Ord`].
     /// Avoid bringing in `unordered_float` as a dependency prematurely.
-    #[derive(PartialEq, Deref, Clone, Copy)]
+    #[derive(PartialEq, Deref, Clone, Copy, Debug)]
     pub struct Ordered<T>(pub T)
     where
         T: PartialEq + PartialOrd;
