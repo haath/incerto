@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BinaryHeap};
+use std::{cmp::Ordering, collections::BinaryHeap, fmt::Display};
 
 use bevy::prelude::Deref;
 
@@ -33,6 +33,9 @@ pub struct Maximum<T>(T);
 /// ```ignore
 /// let median = simulation.sample_aggregate::<MyComponent, Option<Median<f32>>>().unwrap();
 /// ```
+///
+/// Note that computing float medians will panic if any of the samples being aggregated are not
+/// comparable (e.g `NaN`).
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Median<T>(T);
 
@@ -131,63 +134,67 @@ blanket_impl_sample_aggr_mean!(i128);
 blanket_impl_sample_aggr_mean!(f32);
 blanket_impl_sample_aggr_mean!(f64);
 
-macro_rules! blanket_impl_sample_aggr_median_int {
-    ($t: tt) => {
-        impl<T> SampleAggregate<Option<Median<$t>>> for T
-        where
-            T: Sample<$t>,
+impl<T, O> SampleAggregate<Option<Median<O>>> for T
+where
+    T: Sample<O>,
+    O: PartialEq + PartialOrd + Copy + Display,
+{
+    fn sample_aggregate(components: &[&Self]) -> Option<Median<O>>
+    {
+        if components.is_empty()
         {
-            fn sample_aggregate(components: &[&Self]) -> Option<Median<$t>>
-            {
-                if components.is_empty()
-                {
-                    return None;
-                }
-
-                let sorted: BinaryHeap<_> = components.iter().map(|&c| Sample::sample(c)).collect();
-                let sorted = sorted.as_slice();
-                let median = sorted[sorted.len() / 2];
-                Some(Median(median))
-            }
+            return None;
         }
-    };
-}
-blanket_impl_sample_aggr_median_int!(usize);
-blanket_impl_sample_aggr_median_int!(u8);
-blanket_impl_sample_aggr_median_int!(u16);
-blanket_impl_sample_aggr_median_int!(u32);
-blanket_impl_sample_aggr_median_int!(u64);
-blanket_impl_sample_aggr_median_int!(u128);
-blanket_impl_sample_aggr_median_int!(i8);
-blanket_impl_sample_aggr_median_int!(i16);
-blanket_impl_sample_aggr_median_int!(i32);
-blanket_impl_sample_aggr_median_int!(i64);
-blanket_impl_sample_aggr_median_int!(i128);
 
-macro_rules! blanket_impl_sample_aggr_median_float {
-    ($t: tt) => {
-        impl<T> SampleAggregate<Option<Median<$t>>> for T
-        where
-            T: Sample<$t>,
+        let sorted: BinaryHeap<_> = components
+            .iter()
+            .map(|&c| Sample::sample(c))
+            .map(|v| sealed::Ordered(v))
+            .collect();
+        let sorted = sorted.as_slice();
+        let median = sorted[sorted.len() / 2];
+        Some(Median(*median))
+    }
+}
+
+mod sealed
+{
+    use std::fmt::Display;
+
+    use bevy::prelude::Deref;
+
+    /// Hidden type used for the implementation of some aggregate functions that require [`Ord`].
+    /// Avoid bringing in `unordered_float` as a dependency prematurely.
+    #[derive(PartialEq, Deref, Clone, Copy)]
+    pub struct Ordered<T>(pub T)
+    where
+        T: PartialEq + PartialOrd;
+
+    impl<T> PartialOrd for Ordered<T>
+    where
+        T: PartialEq + PartialOrd,
+    {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering>
         {
-            fn sample_aggregate(components: &[&Self]) -> Option<Median<$t>>
-            {
-                if components.is_empty()
-                {
-                    return None;
-                }
-
-                let sorted: BinaryHeap<_> = components
-                    .iter()
-                    .map(|&c| Sample::sample(c))
-                    .map(|f| ordered_float::OrderedFloat(f))
-                    .collect();
-                let sorted = sorted.as_slice();
-                let median = sorted[sorted.len() / 2];
-                Some(Median(*median))
-            }
+            self.0.partial_cmp(&other.0)
         }
-    };
+    }
+
+    impl<T> Eq for Ordered<T> where T: PartialEq + PartialOrd {}
+
+    impl<T> Ord for Ordered<T>
+    where
+        T: PartialEq + PartialOrd + Copy + Display,
+    {
+        #[allow(clippy::expect_used)]
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering
+        {
+            self.partial_cmp(other).unwrap_or_else(|| {
+                panic!(
+                    "error during aggregate sampling, cannot compare values: {}, {}",
+                    self.0, other.0
+                );
+            })
+        }
+    }
 }
-blanket_impl_sample_aggr_median_float!(f32);
-blanket_impl_sample_aggr_median_float!(f64);
