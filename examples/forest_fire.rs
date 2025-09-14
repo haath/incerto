@@ -209,7 +209,7 @@ fn main()
     println!("  Data points collected: {}", time_series.len());
 
     if let Some(peak_fire) = time_series
-        .iter()
+        .values()
         .max_by(|a, b| a.burning_count.cmp(&b.burning_count))
     {
         println!(
@@ -219,7 +219,10 @@ fn main()
         );
     }
 
-    let total_burned = time_series.last().map_or(0, |stats| stats.burned_count);
+    let total_burned = time_series
+        .values()
+        .last()
+        .map_or(0, |stats| stats.burned_count);
     println!(
         "  Total area burned: {} cells ({:.1}%)",
         total_burned,

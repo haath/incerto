@@ -4,7 +4,8 @@ use bevy::{
 };
 
 use crate::{
-    Identifier, Sample, error::SamplingError, plugins::TimeSeries, traits::SampleAggregate,
+    Identifier, Sample, TimeSeries, error::SamplingError, plugins::TimeSeriesData,
+    traits::SampleAggregate,
 };
 
 /// Executor of monte carlo experiments.
@@ -166,7 +167,10 @@ impl Simulation
     /// - [`SamplingError::ComponentMissing`]
     /// - [`SamplingError::EntityIdentifierNotFound`]
     /// - [`SamplingError::EntityIdentifierNotUnique`]
-    pub fn get_time_series<C, Id, Out>(&self, id: &Id) -> Result<Vec<&Out>, SamplingError>
+    pub fn get_time_series<C, Id, Out>(
+        &'_ self,
+        id: &Id,
+    ) -> Result<TimeSeries<'_, Out>, SamplingError>
     where
         Out: Send + Sync + 'static,
         C: Sample<Out>,
@@ -174,7 +178,7 @@ impl Simulation
     {
         let world = self.app.world();
         let mut query = world
-            .try_query::<(&TimeSeries<C, Id, Out>, &Id)>()
+            .try_query::<(&TimeSeriesData<C, Id, Out>, &Id)>()
             .ok_or(SamplingError::ComponentMissing)?;
 
         let mut result_iter = query.iter(world).filter(|&(_, entity_id)| entity_id == id);
@@ -190,9 +194,9 @@ impl Simulation
             return Err(SamplingError::EntityIdentifierNotUnique);
         }
 
-        let values = time_series.values.iter().by_ref().collect();
+        let time_series = time_series.collect();
 
-        Ok(values)
+        Ok(time_series)
     }
 
     /// Retrieve the values of a time series that was recorded during the simulation.
@@ -203,7 +207,7 @@ impl Simulation
     /// # Errors
     ///
     /// - [`SamplingError::TimeSeriesNotRecorded`]
-    pub fn get_aggregate_time_series<C, Out>(&self) -> Result<Vec<&Out>, SamplingError>
+    pub fn get_aggregate_time_series<C, Out>(&'_ self) -> Result<TimeSeries<'_, Out>, SamplingError>
     where
         C: SampleAggregate<Out>,
         Out: Send + Sync + 'static,
@@ -220,8 +224,8 @@ impl Simulation
     ///
     /// - [`SamplingError::TimeSeriesNotRecorded`]
     pub fn get_aggregate_time_series_filtered<C, Filter, Out>(
-        &self,
-    ) -> Result<Vec<&Out>, SamplingError>
+        &'_ self,
+    ) -> Result<TimeSeries<'_, Out>, SamplingError>
     where
         C: SampleAggregate<Out>,
         Filter: QueryFilter + Send + Sync + 'static,
@@ -229,11 +233,11 @@ impl Simulation
     {
         let world = self.app.world();
         let time_series = world
-            .get_resource::<TimeSeries<C, Filter, Out>>()
+            .get_resource::<TimeSeriesData<C, Filter, Out>>()
             .ok_or(SamplingError::TimeSeriesNotRecorded)?;
 
-        let values = time_series.values.iter().by_ref().collect();
+        let time_series = time_series.collect();
 
-        Ok(values)
+        Ok(time_series)
     }
 }

@@ -182,8 +182,7 @@ fn test_counter_time_series()
     let values = simulation
         .get_aggregate_time_series::<MyCounter, usize>()
         .expect("time series not recorded")
-        .into_iter()
-        .copied()
+        .values_copied()
         .collect::<Vec<_>>();
 
     assert_eq!(values, vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
@@ -194,8 +193,7 @@ fn test_counter_time_series()
     let values = simulation
         .get_aggregate_time_series::<MyCounter, usize>()
         .expect("time series not recorded")
-        .into_iter()
-        .copied()
+        .values_copied()
         .collect::<Vec<_>>();
 
     assert_eq!(values, vec![10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110]);

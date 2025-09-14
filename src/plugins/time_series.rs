@@ -2,17 +2,17 @@ use std::marker::PhantomData;
 
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{Identifier, Sample, SampleAggregate, plugins::step_counter::StepCounter};
+use crate::{Identifier, Sample, SampleAggregate, TimeSeries, plugins::step_counter::StepCounter};
 
 #[derive(Component, Resource, Default)]
-pub struct TimeSeries<C, F, O>
+pub struct TimeSeriesData<C, F, O>
 {
     pub(crate) values: Vec<O>,
     sample_interval: usize,
     _phantom: PhantomData<(C, F)>,
 }
 
-impl<C, F, O> TimeSeries<C, F, O>
+impl<C, F, O> TimeSeriesData<C, F, O>
 {
     const fn new(sample_interval: usize) -> Self
     {
@@ -20,6 +20,17 @@ impl<C, F, O> TimeSeries<C, F, O>
             values: Vec::new(),
             sample_interval,
             _phantom: PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub fn collect(&self) -> TimeSeries<'_, O>
+    {
+        let values = self.values.iter().by_ref().collect();
+
+        TimeSeries {
+            values,
+            sample_interval: self.sample_interval,
         }
     }
 }
@@ -51,7 +62,7 @@ where
     }
 
     fn time_series_sample(
-        mut time_series: ResMut<TimeSeries<C, F, O>>,
+        mut time_series: ResMut<TimeSeriesData<C, F, O>>,
         step_counter: Res<StepCounter>,
         query: Query<&C, F>,
     )
@@ -76,7 +87,7 @@ where
 {
     fn build(&self, app: &mut App)
     {
-        app.insert_resource(TimeSeries::<C, F, O>::new(self.sample_interval));
+        app.insert_resource(TimeSeriesData::<C, F, O>::new(self.sample_interval));
 
         app.add_systems(PostUpdate, Self::time_series_sample);
     }
@@ -121,11 +132,11 @@ where
         {
             commands
                 .entity(entity)
-                .insert(TimeSeries::<C, I, O>::new(**sample_interval));
+                .insert(TimeSeriesData::<C, I, O>::new(**sample_interval));
         }
     }
 
-    fn time_series_sample(mut query: Query<(&C, &mut TimeSeries<C, I, O>)>)
+    fn time_series_sample(mut query: Query<(&C, &mut TimeSeriesData<C, I, O>)>)
     {
         for (component, mut time_series) in &mut query
         {

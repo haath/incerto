@@ -33,8 +33,7 @@ fn test_aggregates_int()
         }
     });
 
-    let mut simulation = builder.build();
-    simulation.run(1);
+    let simulation = builder.build();
 
     let min = simulation
         .sample_aggregate::<Item, Option<Minimum<_>>>()
@@ -74,8 +73,7 @@ fn test_aggregates_float()
         }
     });
 
-    let mut simulation = builder.build();
-    simulation.run(1);
+    let simulation = builder.build();
 
     let min = simulation
         .sample_aggregate::<ItemFloat, Option<Minimum<_>>>()

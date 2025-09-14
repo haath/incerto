@@ -71,15 +71,13 @@ struct Trader
 /// So to make it easier to [`Sample`] the net worth we create this auxiliary component which
 /// will carry each trader's net worth computed each step using a system.
 #[derive(Debug, Component)]
-struct TraderNetWorth(TraderId, f64);
+struct TraderNetWorth(f64);
 
-impl SampleAggregate<HashMap<TraderId, f64>> for TraderNetWorth
+impl Sample<f64> for TraderNetWorth
 {
-    /// Collect the net worth values from all traders into a hash map,
-    /// mapping each trader id to his corresponding net worth.
-    fn sample_aggregate(components: &[&Self]) -> HashMap<TraderId, f64>
+    fn sample(component: &Self) -> f64
     {
-        components.iter().map(|c| (c.0, c.1)).collect()
+        component.0
     }
 }
 
@@ -96,13 +94,21 @@ fn main() -> Result<(), SimulationError>
         // stocks
         .add_entity_spawner(spawn_stocks)
         .add_systems(stocks_price_change)
-        .record_aggregate_time_series::<TraderNetWorth, _>(1)?
+        .record_time_series::<TraderNetWorth, TraderId, _>(1)?
         .build();
 
     simulation.run(SIMULATION_STEPS);
 
-    let time_series = simulation.get_aggregate_time_series::<TraderNetWorth, _>()?;
-    plot_net_worths(&time_series);
+    let time_series_per_trader = (0..NUM_TRADERS)
+        .map(TraderId)
+        .map(|id| {
+            let time_series = simulation
+                .get_time_series::<TraderNetWorth, _, _>(&id)
+                .expect("error getting time series");
+            (id, time_series)
+        })
+        .collect();
+    plot_net_worths(time_series_per_trader);
 
     Ok(())
 }
@@ -117,7 +123,7 @@ fn spawn_traders(spawner: &mut Spawner)
                 cash: TRADER_INITIAL_CASH,
                 portfolio: HashMap::new(),
             },
-            TraderNetWorth(TraderId(id), TRADER_INITIAL_CASH),
+            TraderNetWorth(TRADER_INITIAL_CASH),
         ));
     }
 }
@@ -252,35 +258,17 @@ fn traders_calculate_net_worth(
             })
             .sum::<f64>();
 
-        net_worth.1 = trader.cash + portfolio_value;
+        net_worth.0 = trader.cash + portfolio_value;
     }
 }
 
-fn plot_net_worths(time_series: &[&HashMap<TraderId, f64>])
+fn plot_net_worths(time_series: HashMap<TraderId, TimeSeries<f64>>)
 {
-    // convert the data to one time series per trader
-    let mut time_series_per_trader: HashMap<TraderId, Vec<f64>> = time_series
-        .first()
-        .expect("no time series recorded")
-        .keys()
-        .map(|&id| (id, Vec::<f64>::new()))
-        .collect();
-    for point in time_series
-    {
-        for (id, &value) in *point
-        {
-            let series = time_series_per_trader
-                .get_mut(id)
-                .expect("missing trader time series");
-            series.push(value);
-        }
-    }
-
     // expect them all to have equal length
-    let series_length = time_series_per_trader[&TraderId(0)].len();
-    for series in time_series_per_trader.values()
+    let duration = time_series[&TraderId(0)].duration();
+    for series in time_series.values()
     {
-        assert_eq!(series.len(), series_length);
+        assert_eq!(series.len(), duration);
     }
 
     let root_area = BitMapBackend::new(PLOT_STORE_PATH, (1024, 512)).into_drawing_area();
@@ -293,17 +281,17 @@ fn plot_net_worths(time_series: &[&HashMap<TraderId, f64>])
             "Traders' net worth over a 2-year period",
             ("sans-serif", 40),
         )
-        .build_cartesian_2d(0..series_length, 0.0..(2.0 * TRADER_INITIAL_CASH))
+        .build_cartesian_2d(0..duration, 0.0..(2.0 * TRADER_INITIAL_CASH))
         .unwrap();
 
     ctx.configure_mesh().draw().unwrap();
 
     let colors = [&RED, &GREEN, &BLUE, &PURPLE, &ORANGE, &INDIGO, &AMBER];
 
-    for (id, series) in time_series_per_trader
+    for (id, series) in time_series
     {
         let color = colors[id.0 % colors.len()];
-        let series_iter = series.into_iter().enumerate();
+        let series_iter = series.enumerate_copied();
 
         ctx.draw_series(LineSeries::new(series_iter, *color))
             .unwrap();

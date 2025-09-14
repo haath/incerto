@@ -8,7 +8,7 @@ use crate::{
     BuilderError, Identifier, Sample, SampleAggregate,
     plugins::{
         AggregateTimeSeriesPlugin, GridBounds, GridCoordinates, SampleInterval, SpatialGridPlugin,
-        StepCounterPlugin, TimeSeries, TimeSeriesPlugin,
+        StepCounterPlugin, TimeSeriesData, TimeSeriesPlugin,
     },
     prelude::{GridBounds2D, GridBounds3D},
     simulation::Simulation,
@@ -94,7 +94,6 @@ impl SimulationBuilder
     ///
     /// Example:
     /// ```
-    /// # use bevy::prelude::IVec2;
     /// # use incerto::prelude::*;
     /// #[derive(Component)]
     /// struct Person;
@@ -272,7 +271,7 @@ impl SimulationBuilder
         assert!(sample_interval > 0);
 
         let world = self.app.world();
-        if world.get_resource::<TimeSeries<C, F, O>>().is_some()
+        if world.get_resource::<TimeSeriesData<C, F, O>>().is_some()
         {
             // More than one time series recording for the same C, F, O is not possible.
             return Err(BuilderError::TimeSeriesRecordingConflict);

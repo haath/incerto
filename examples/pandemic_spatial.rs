@@ -241,7 +241,7 @@ fn main()
     println!("  Data points collected: {}", time_series.len());
 
     if let Some(peak_infections) = time_series
-        .iter()
+        .values()
         .max_by_key(|stats| stats.infectious_count)
     {
         println!(
@@ -251,8 +251,14 @@ fn main()
         );
     }
 
-    let total_recovered = time_series.last().map_or(0, |stats| stats.recovered_count);
-    let total_deaths = time_series.last().map_or(0, |stats| stats.dead_count);
+    let total_recovered = time_series
+        .values()
+        .last()
+        .map_or(0, |stats| stats.recovered_count);
+    let total_deaths = time_series
+        .values()
+        .last()
+        .map_or(0, |stats| stats.dead_count);
     println!(
         "  Total recovered: {} ({:.1}%)",
         total_recovered,

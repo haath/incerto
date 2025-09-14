@@ -21,6 +21,7 @@ mod simulation;
 mod simulation_builder;
 mod spawner;
 mod traits;
+mod types;
 mod util;
 
 pub use error::*;
@@ -29,4 +30,5 @@ pub use simulation::Simulation;
 pub use simulation_builder::SimulationBuilder;
 pub use spawner::Spawner;
 pub use traits::*;
+pub use types::*;
 pub use util::*;
