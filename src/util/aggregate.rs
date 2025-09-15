@@ -1,5 +1,5 @@
+#![allow(clippy::expect_used)]
 use std::{
-    cmp::Ordering,
     collections::BinaryHeap,
     fmt::{Debug, Display},
 };
@@ -11,7 +11,7 @@ use crate::{SampleAggregate, prelude::*};
 /// Utility aggregator that fetches the minimum value.
 ///
 /// Implemented automatically for any numeric type `T` where a [`Sample<T>`]
-/// implementation also exist.
+/// implementation also exists for the component.
 ///
 /// ```ignore
 /// let min = simulation.sample_aggregate::<MyComponent, Option<Minimum<f32>>>().unwrap();
@@ -22,7 +22,7 @@ pub struct Minimum<T>(T);
 /// Utility aggregator that fetches the maximum value.
 ///
 /// Implemented automatically for any numeric type `T` where a [`Sample<T>`]
-/// implementation also exist.
+/// implementation also exists for the component.
 ///
 /// ```ignore
 /// let max = simulation.sample_aggregate::<MyComponent, Option<Maximum<f32>>>().unwrap();
@@ -58,8 +58,11 @@ pub struct Mean<T>(T);
 /// The percentile is selected via the parameter `P`.
 /// The aggregated value is the one, where `P%` of all samples are at or below it.
 ///
+/// Implemented automatically for any numeric type `T` where a [`Sample<T>`]
+/// implementation also exists for the component.
+///
 /// ```ignore
-/// let tength_percentile = simulation.sample_aggregate::<MyComponent, Option<Percentile<f32, 10>>>().unwrap();
+/// let tenth_percentile = simulation.sample_aggregate::<MyComponent, Option<Percentile<f32, 10>>>().unwrap();
 /// ```
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Percentile<T, const P: u8>(T);
@@ -67,45 +70,37 @@ pub struct Percentile<T, const P: u8>(T);
 // ===========================================================
 //              Blanket implementations
 // ===========================================================
-impl<T, O> SampleAggregate<Option<Minimum<O>>> for T
+impl<T, O> SampleAggregate<Minimum<O>> for T
 where
     T: Sample<O>,
-    O: PartialOrd + Copy,
+    O: PartialOrd + Copy + Display,
 {
-    fn sample_aggregate(components: &[&Self]) -> Option<Minimum<O>>
+    fn sample_aggregate(components: &[&Self]) -> Minimum<O>
     {
-        components
+        let min = components
             .iter()
             .map(|&c| Sample::sample(c))
-            .fold(None, |acc: Option<O>, v| {
-                acc.map_or(Some(v), |cur_min| match v.partial_cmp(&cur_min)
-                {
-                    Some(Ordering::Less) => Some(v),
-                    _ => Some(cur_min),
-                })
-            })
-            .map(|min| Minimum(min))
+            .map(|v| sealed::Ordered(v))
+            .min()
+            .expect("sample_aggregate called with empty slice");
+        Minimum(*min)
     }
 }
 
-impl<T, O> SampleAggregate<Option<Maximum<O>>> for T
+impl<T, O> SampleAggregate<Maximum<O>> for T
 where
     T: Sample<O>,
-    O: PartialOrd + Copy,
+    O: PartialOrd + Copy + Display,
 {
-    fn sample_aggregate(components: &[&Self]) -> Option<Maximum<O>>
+    fn sample_aggregate(components: &[&Self]) -> Maximum<O>
     {
-        components
+        let max = components
             .iter()
             .map(|&c| Sample::sample(c))
-            .fold(None, |acc: Option<O>, v| {
-                acc.map_or(Some(v), |cur_max| match v.partial_cmp(&cur_max)
-                {
-                    Some(Ordering::Greater) => Some(v),
-                    _ => Some(cur_max),
-                })
-            })
-            .map(|max| Maximum(max))
+            .map(|v| sealed::Ordered(v))
+            .max()
+            .expect("sample_aggregate called with empty slice");
+        Maximum(*max)
     }
 }
 
@@ -114,7 +109,7 @@ impl<O, const P: u8> Percentile<O, P>
     const PERCENTAGE: f64 = (P as f64) / 100.0;
     const _ASSERT: () = assert!(P <= 100, "percentile must be between 0 and 100");
 }
-impl<T, O, const P: u8> SampleAggregate<Option<Percentile<O, P>>> for T
+impl<T, O, const P: u8> SampleAggregate<Percentile<O, P>> for T
 where
     T: Sample<O>,
     O: PartialEq + PartialOrd + Copy + Display + Debug,
@@ -122,12 +117,9 @@ where
     #[allow(clippy::cast_precision_loss)]
     #[allow(clippy::cast_sign_loss)]
     #[allow(clippy::cast_possible_truncation)]
-    fn sample_aggregate(components: &[&Self]) -> Option<Percentile<O, P>>
+    fn sample_aggregate(components: &[&Self]) -> Percentile<O, P>
     {
-        if components.is_empty()
-        {
-            return None;
-        }
+        assert!(!components.is_empty());
 
         let sorted: BinaryHeap<_> = components
             .iter()
@@ -138,21 +130,18 @@ where
 
         let idx = (Percentile::<O, P>::PERCENTAGE * sorted.len() as f64).floor();
         let value = sorted[idx as usize];
-        Some(Percentile(*value))
+        Percentile(*value)
     }
 }
 
-impl<T, O> SampleAggregate<Option<Median<O>>> for T
+impl<T, O> SampleAggregate<Median<O>> for T
 where
     T: Sample<O>,
     O: PartialEq + PartialOrd + Copy + Display,
 {
-    fn sample_aggregate(components: &[&Self]) -> Option<Median<O>>
+    fn sample_aggregate(components: &[&Self]) -> Median<O>
     {
-        if components.is_empty()
-        {
-            return None;
-        }
+        assert!(!components.is_empty());
 
         let sorted: BinaryHeap<_> = components
             .iter()
@@ -161,32 +150,29 @@ where
             .collect();
         let sorted = sorted.into_sorted_vec();
         let median = sorted[sorted.len() / 2];
-        Some(Median(*median))
+        Median(*median)
     }
 }
 
 macro_rules! blanket_impl_sample_aggr_mean {
     ($t: tt) => {
-        impl<T> SampleAggregate<Option<Mean<$t>>> for T
+        impl<T> SampleAggregate<Mean<$t>> for T
         where
             T: Sample<$t>,
         {
             #[allow(clippy::cast_precision_loss)]
             #[allow(clippy::cast_possible_wrap)]
             #[allow(clippy::cast_possible_truncation)]
-            fn sample_aggregate(components: &[&Self]) -> Option<Mean<$t>>
+            fn sample_aggregate(components: &[&Self]) -> Mean<$t>
             {
-                if components.is_empty()
-                {
-                    return None;
-                }
+                assert!(!components.is_empty());
 
                 let sum: $t = components.iter().map(|&c| Sample::sample(c)).sum();
                 let cnt = components.len() as $t;
 
                 let mean = sum / cnt;
 
-                Some(Mean(mean))
+                Mean(mean)
             }
         }
     };

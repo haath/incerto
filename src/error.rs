@@ -10,19 +10,24 @@ pub enum SimulationError
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SamplingError
 {
+    /// The component type being sampled was not possible to query.
+    /// This indicates that no entity with this component was ever spawned.
+    ComponentDoesNotExist,
+
     /// Expected only a single entity with the given component type in the simulation
     /// from the call to [`crate::Simulation::sample_single`].
-    /// This error indicates that no entities were found
+    /// This error indicates that no entities were found.
     SingleNoEntities,
 
     /// Expected only a single entity with the given component type in the simulation
     /// from the call to [`crate::Simulation::sample_single`].
-    /// This error indicates that no entities were found
+    /// This error indicates that more than one entity was found.
     SingleMultipleEntities,
 
-    /// The component type given was not found in the simulation.
-    /// This indicates that no entity with this component was ever spawned.
-    ComponentMissing,
+    /// Expected one or more entities with the given component type in the simulation
+    /// for aggregate sampling.
+    /// From the call to [`crate::Simulation::sample_aggregate`] or [`crate::Simulation::sample_aggregate_filtered`].
+    AggregateNoEntities,
 
     /// The requested time series has not been recorded in the simulation.
     /// This indicates that [`crate::Simulation::get_time_series`] was called without

@@ -1,15 +1,15 @@
 use bevy::prelude::*;
 
 #[derive(Resource, Default, Debug, Deref)]
-pub struct StepCounter(usize);
+pub struct StepNumber(usize);
 
-pub struct StepCounterPlugin;
+pub struct StepNumberPlugin;
 
-impl Plugin for StepCounterPlugin
+impl Plugin for StepNumberPlugin
 {
     fn build(&self, app: &mut App)
     {
-        app.insert_resource(StepCounter(0));
+        app.insert_resource(StepNumber(0));
 
         // increment the step counter after any other systems in the simulation
         // this enables a reliable step number reading in PreUpdate
@@ -17,7 +17,7 @@ impl Plugin for StepCounterPlugin
     }
 }
 
-fn step_counter_increment(mut step_counter: ResMut<StepCounter>)
+fn step_counter_increment(mut step_counter: ResMut<StepNumber>)
 {
     step_counter.0 += 1;
 }

@@ -1,5 +1,5 @@
-mod step_counter;
-pub use step_counter::StepCounterPlugin;
+mod step_number;
+pub use step_number::{StepNumber, StepNumberPlugin};
 
 mod time_series;
 pub use time_series::{

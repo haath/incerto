@@ -93,7 +93,7 @@ fn test_many_counters()
 }
 
 #[test]
-fn test_counters_two_groups()
+fn test_counters_two_groups() -> Result<(), SimulationError>
 {
     const NUM_STEPS: usize = 100;
     const NUM_COUNTERS_PER_GROUP: usize = 50;
@@ -139,23 +139,16 @@ fn test_counters_two_groups()
         .expect("expected to sample the counter sum");
     assert_eq!(group_b_sum, NUM_STEPS * NUM_COUNTERS_PER_GROUP);
 
-    let min_count = simulation
-        .sample_aggregate::<MyCounter, Option<Minimum<_>>>()
-        .expect("expected to sample counter minimum")
-        .expect("expected at least one counter value");
+    let min_count = simulation.sample_aggregate::<MyCounter, Minimum<_>>()?;
     assert_eq!(*min_count, NUM_STEPS);
 
-    let max_count = simulation
-        .sample_aggregate::<MyCounter, Option<Maximum<_>>>()
-        .expect("expected to sample counter maximum")
-        .expect("expected at least one counter value");
+    let max_count = simulation.sample_aggregate::<MyCounter, Maximum<_>>()?;
     assert_eq!(*max_count, 2 * NUM_STEPS);
 
-    let mean_count = simulation
-        .sample_aggregate::<MyCounter, Option<Mean<_>>>()
-        .expect("expected to sample counter mean")
-        .expect("expected at least one counter value");
+    let mean_count = simulation.sample_aggregate::<MyCounter, Mean<_>>()?;
     assert_eq!(*mean_count, 3 * NUM_STEPS / 2);
+
+    Ok(())
 }
 
 #[test]

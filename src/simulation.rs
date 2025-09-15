@@ -37,7 +37,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
     /// - [`SamplingError::EntityIdentifierNotFound`]
     /// - [`SamplingError::EntityIdentifierNotUnique`]
     pub fn sample<C: Sample<Out>, Id: Identifier, Out>(&self, id: &Id)
@@ -46,7 +46,7 @@ impl Simulation
         let world = self.app.world();
         let mut query = world
             .try_query::<(&C, &Id)>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let mut result_iter = query.iter(world).filter(|&(_, entity_id)| entity_id == id);
 
@@ -73,7 +73,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
     /// - [`SamplingError::SingleNoEntities`]
     /// - [`SamplingError::SingleMultipleEntities`]
     pub fn sample_single<C: Sample<Out>, Out>(&self) -> Result<Out, SamplingError>
@@ -81,7 +81,7 @@ impl Simulation
         let world = self.app.world();
         let mut query = world
             .try_query::<&C>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let component = query.single(world).map_err(|e| match e
         {
@@ -97,17 +97,25 @@ impl Simulation
     /// This method uses the [`SampleAggregate<O>`] implementation to extract a single value
     /// of type `O` from all of the existing components and return it.
     ///
+    /// If no entities with the given component type are found this method
+    /// will return [`SamplingError::AggregateNoEntities`].
+    ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
+    /// - [`SamplingError::AggregateNoEntities`]
     pub fn sample_aggregate<C: SampleAggregate<Out>, Out>(&self) -> Result<Out, SamplingError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query::<&C>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
+        if results.is_empty()
+        {
+            return Err(SamplingError::AggregateNoEntities);
+        }
 
         Ok(C::sample_aggregate(&results))
     }
@@ -118,9 +126,13 @@ impl Simulation
     /// of type `O` from all of the components on entities selected with
     /// the filter `F`, and return it.
     ///
+    /// If no entities with the given component type are found this method
+    /// will return [`SamplingError::AggregateNoEntities`].
+    ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
+    /// - [`SamplingError::AggregateNoEntities`]
     pub fn sample_aggregate_filtered<C: SampleAggregate<Out>, F: QueryFilter, Out>(
         &self,
     ) -> Result<Out, SamplingError>
@@ -128,9 +140,13 @@ impl Simulation
         let world = self.app.world();
         let mut query = world
             .try_query_filtered::<&C, F>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let results = query.iter(world).collect::<Vec<_>>();
+        if results.is_empty()
+        {
+            return Err(SamplingError::AggregateNoEntities);
+        }
 
         Ok(C::sample_aggregate(&results))
     }
@@ -143,13 +159,13 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
     pub fn count<F: QueryFilter>(&self) -> Result<usize, SamplingError>
     {
         let world = self.app.world();
         let mut query = world
             .try_query_filtered::<(), F>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let count = query.iter(world).count();
 
@@ -164,7 +180,7 @@ impl Simulation
     ///
     /// # Errors
     ///
-    /// - [`SamplingError::ComponentMissing`]
+    /// - [`SamplingError::ComponentDoesNotExist`]
     /// - [`SamplingError::EntityIdentifierNotFound`]
     /// - [`SamplingError::EntityIdentifierNotUnique`]
     pub fn get_time_series<C, Id, Out>(
@@ -179,7 +195,7 @@ impl Simulation
         let world = self.app.world();
         let mut query = world
             .try_query::<(&TimeSeriesData<C, Id, Out>, &Id)>()
-            .ok_or(SamplingError::ComponentMissing)?;
+            .ok_or(SamplingError::ComponentDoesNotExist)?;
 
         let mut result_iter = query.iter(world).filter(|&(_, entity_id)| entity_id == id);
 

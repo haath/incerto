@@ -24,7 +24,7 @@ impl Sample<f32> for ItemFloat
 }
 
 #[test]
-fn test_aggregates_int()
+fn test_aggregates_int() -> Result<(), SimulationError>
 {
     let builder = SimulationBuilder::new().add_entity_spawner(|spawner| {
         for i in 0..10
@@ -35,48 +35,32 @@ fn test_aggregates_int()
 
     let simulation = builder.build();
 
-    let min = simulation
-        .sample_aggregate::<Item, Option<Minimum<_>>>()
-        .expect("expected to sample counter minimum")
-        .expect("expected at least one counter value");
+    let min = simulation.sample_aggregate::<Item, Minimum<_>>()?;
     assert_eq!(*min, 1);
 
-    let max = simulation
-        .sample_aggregate::<Item, Option<Maximum<_>>>()
-        .expect("expected to sample counter maximum")
-        .expect("expected at least one counter value");
+    let max = simulation.sample_aggregate::<Item, Maximum<_>>()?;
     assert_eq!(*max, 19);
 
-    let mean = simulation
-        .sample_aggregate::<Item, Option<Mean<_>>>()
-        .expect("expected to sample counter mean")
-        .expect("expected at least one counter value");
+    let mean = simulation.sample_aggregate::<Item, Mean<_>>()?;
     assert_eq!(*mean, 10);
 
-    let median = simulation
-        .sample_aggregate::<Item, Option<Median<_>>>()
-        .expect("expected to sample counter median")
-        .expect("expected at least one counter value");
+    let median = simulation.sample_aggregate::<Item, Median<_>>()?;
     assert_eq!(*median, 11);
 
-    let percentile_10 = simulation
-        .sample_aggregate::<Item, Option<Percentile<_, 10>>>()
-        .expect("expected to sample counter median")
-        .expect("expected at least one counter value");
+    let percentile_10 = simulation.sample_aggregate::<Item, Percentile<_, 10>>()?;
     assert_eq!(*percentile_10, 3);
 
-    let percentile_70 = simulation
-        .sample_aggregate::<Item, Option<Percentile<_, 70>>>()
-        .expect("expected to sample counter median")
-        .expect("expected at least one counter value");
+    let percentile_70 = simulation.sample_aggregate::<Item, Percentile<_, 70>>()?;
     assert_eq!(*percentile_70, 15);
+
+    Ok(())
 }
 
 #[test]
 #[allow(clippy::cast_precision_loss)]
 #[allow(clippy::float_cmp)]
 #[allow(clippy::suboptimal_flops)]
-fn test_aggregates_float()
+fn test_aggregates_float() -> Result<(), SimulationError>
 {
     let builder = SimulationBuilder::new().add_entity_spawner(|spawner| {
         for i in 0..10
@@ -87,33 +71,20 @@ fn test_aggregates_float()
 
     let simulation = builder.build();
 
-    let min = simulation
-        .sample_aggregate::<ItemFloat, Option<Minimum<_>>>()
-        .expect("expected to sample counter minimum")
-        .expect("expected at least one counter value");
+    let min = simulation.sample_aggregate::<ItemFloat, Minimum<_>>()?;
     assert_eq!(*min, 1.0);
 
-    let max = simulation
-        .sample_aggregate::<ItemFloat, Option<Maximum<_>>>()
-        .expect("expected to sample counter maximum")
-        .expect("expected at least one counter value");
+    let max = simulation.sample_aggregate::<ItemFloat, Maximum<_>>()?;
     assert_eq!(*max, 19.0);
 
-    let mean = simulation
-        .sample_aggregate::<ItemFloat, Option<Mean<_>>>()
-        .expect("expected to sample counter mean")
-        .expect("expected at least one counter value");
+    let mean = simulation.sample_aggregate::<ItemFloat, Mean<_>>()?;
     assert_eq!(*mean, 10.0);
 
-    let median = simulation
-        .sample_aggregate::<ItemFloat, Option<Median<_>>>()
-        .expect("expected to sample counter median")
-        .expect("expected at least one counter value");
+    let median = simulation.sample_aggregate::<ItemFloat, Median<_>>()?;
     assert_eq!(*median, 11.0);
 
-    let percentile_30 = simulation
-        .sample_aggregate::<ItemFloat, Option<Percentile<_, 30>>>()
-        .expect("expected to sample counter median")
-        .expect("expected at least one counter value");
+    let percentile_30 = simulation.sample_aggregate::<ItemFloat, Percentile<_, 30>>()?;
     assert_eq!(*percentile_30, 7.0);
+
+    Ok(())
 }

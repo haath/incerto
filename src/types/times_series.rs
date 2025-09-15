@@ -1,6 +1,7 @@
 pub struct TimeSeries<'a, T>
 {
     pub(crate) values: Vec<&'a T>,
+    pub(crate) time: Vec<usize>,
     pub(crate) sample_interval: usize,
 }
 
@@ -27,9 +28,14 @@ impl<T> TimeSeries<'_, T>
     ///
     /// The value is in number of simulation steps.
     #[must_use]
-    pub const fn duration(&self) -> usize
+    pub fn duration(&self) -> usize
     {
-        self.values.len() * self.sample_interval
+        if self.is_empty()
+        {
+            return 0;
+        }
+
+        self.time[self.time.len() - 1]
     }
 
     /// Returns the sample interval with which this time series was sampled.
@@ -43,14 +49,20 @@ impl<T> TimeSeries<'_, T>
 
     /// Iterates over the time range in which this series was sampled.
     ///
-    /// With a sample interval `s`, this will always produce the following sequence:
+    /// With a sample interval `s`, this will typically produce the following sequence:
     /// { `0`, `1s`, `2s`, `3s`, .. }
-    pub fn time_range(&self) -> impl Iterator<Item = usize>
+    ///
+    /// Note that aggregate time series will not contain values from simulation steps where
+    /// no components with the sampled component existed in the simulation.
+    pub fn time(&self) -> impl Iterator<Item = usize>
     {
-        (0..self.values.len()).map(|t| t * self.sample_interval)
+        self.time.iter().copied()
     }
 
     /// Iterates over the values in the time series.
+    ///
+    /// Note that aggregate time series will not contain values from simulation steps where
+    /// no components with the sampled component existed in the simulation.
     pub fn values(&self) -> impl Iterator<Item = &T>
     {
         self.values.iter().copied()
@@ -59,7 +71,7 @@ impl<T> TimeSeries<'_, T>
     /// Iterates over each time-value point in the time series.
     pub fn enumerate(&self) -> impl Iterator<Item = (usize, &T)>
     {
-        self.time_range().zip(self.values())
+        self.time().zip(self.values())
     }
 }
 
@@ -76,6 +88,6 @@ where
     /// Iterates over each time-value point in the time series.
     pub fn enumerate_copied(&self) -> impl Iterator<Item = (usize, T)>
     {
-        self.time_range().zip(self.values_copied())
+        self.time().zip(self.values_copied())
     }
 }

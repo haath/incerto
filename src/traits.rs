@@ -1,29 +1,31 @@
 use std::hash::Hash;
 
-use bevy::prelude::*;
+use crate::prelude::*;
 
 /// Implements the sampling of a value from multiple components in the simulation.
 ///
 /// Needed for:
-/// * [`super::prelude::Simulation::sample`]
-/// * [`super::prelude::Simulation::sample_single`]
-/// * [`super::prelude::SimulationBuilder::record_time_series`]
+/// * [`Simulation::sample`]
+/// * [`Simulation::sample_single`]
+/// * [`SimulationBuilder::record_time_series`]
 pub trait SampleAggregate<Out>: Component + Sized
 {
-    /// Samples a single value of type [`Out`] from the values of all
+    /// Samples a single value of type `Out` from the values of all
     /// components in the simulation.
-    /// Note that the order of the `components` array passed here is random
-    /// and should not be relied on.
+    ///
+    /// The slice passed to this method is:
+    /// * Guaranteed to not be empty.
+    /// * In random arbitrary order.
     fn sample_aggregate(components: &[&Self]) -> Out;
 }
 
 /// Implements the sampling of a value from a component in the simulation.
 ///
 /// Needed for:
-/// * [`super::prelude::Simulation::sample_aggregate`]
-/// * [`super::prelude::Simulation::sample_aggregate_filtered`]
-/// * [`super::prelude::SimulationBuilder::record_aggregate_time_series`]
-/// * [`super::prelude::SimulationBuilder::record_aggregate_time_series_filtered`]
+/// * [`Simulation::sample_aggregate`]
+/// * [`Simulation::sample_aggregate_filtered`]
+/// * [`SimulationBuilder::record_aggregate_time_series`]
+/// * [`SimulationBuilder::record_aggregate_time_series_filtered`]
 ///
 /// `Sample<O>` is automatically implemented for any component that implements `Into<O>`
 /// for numeric types: `u8`, `i32`, `f64` etc.
@@ -40,7 +42,7 @@ pub trait Sample<Out>: Component + Sized
 /// Note that the user will need to ensure no two entities share the same [`Identifier`] value.
 ///
 /// Automatically implemented for any type that is [`Component`] + [`Eq`] + [`Hash`]
-pub trait Identifier: Component + Hash + Eq {}
+pub trait Identifier: Component + Eq + Hash {}
 
 // ===========================================================
 //              Blanket implementations

@@ -8,7 +8,7 @@ use crate::{
     BuilderError, Identifier, Sample, SampleAggregate,
     plugins::{
         AggregateTimeSeriesPlugin, GridBounds, GridCoordinates, SampleInterval, SpatialGridPlugin,
-        StepCounterPlugin, TimeSeriesData, TimeSeriesPlugin,
+        StepNumberPlugin, TimeSeriesData, TimeSeriesPlugin,
     },
     prelude::{GridBounds2D, GridBounds3D},
     simulation::Simulation,
@@ -45,7 +45,7 @@ impl SimulationBuilder
 
         app.add_plugins(TaskPoolPlugin::default())
             .add_plugins(ScheduleRunnerPlugin::run_once())
-            .add_plugins(StepCounterPlugin);
+            .add_plugins(StepNumberPlugin);
 
         app.update();
 

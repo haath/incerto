@@ -25,7 +25,7 @@ mod types;
 mod util;
 
 pub use error::*;
-pub use plugins::{GridBounds, GridPosition, SpatialGrid};
+pub use plugins::{GridBounds, GridPosition, SpatialGrid, StepNumber};
 pub use simulation::Simulation;
 pub use simulation_builder::SimulationBuilder;
 pub use spawner::Spawner;

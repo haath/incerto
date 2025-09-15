@@ -2,12 +2,13 @@ use std::marker::PhantomData;
 
 use bevy::{ecs::query::QueryFilter, prelude::*};
 
-use crate::{Identifier, Sample, SampleAggregate, TimeSeries, plugins::step_counter::StepCounter};
+use crate::{Identifier, Sample, SampleAggregate, TimeSeries, plugins::step_number::StepNumber};
 
 #[derive(Component, Resource, Default)]
 pub struct TimeSeriesData<C, F, O>
 {
     pub(crate) values: Vec<O>,
+    pub(crate) time: Vec<usize>,
     sample_interval: usize,
     _phantom: PhantomData<(C, F)>,
 }
@@ -18,6 +19,7 @@ impl<C, F, O> TimeSeriesData<C, F, O>
     {
         Self {
             values: Vec::new(),
+            time: Vec::new(),
             sample_interval,
             _phantom: PhantomData,
         }
@@ -27,9 +29,11 @@ impl<C, F, O> TimeSeriesData<C, F, O>
     pub fn collect(&self) -> TimeSeries<'_, O>
     {
         let values = self.values.iter().by_ref().collect();
+        let time = self.time.clone();
 
         TimeSeries {
             values,
+            time,
             sample_interval: self.sample_interval,
         }
     }
@@ -63,18 +67,22 @@ where
 
     fn time_series_sample(
         mut time_series: ResMut<TimeSeriesData<C, F, O>>,
-        step_counter: Res<StepCounter>,
+        step_number: Res<StepNumber>,
         query: Query<&C, F>,
     )
     {
         // only get new samples once every 'sample_interval' steps
-        if step_counter.is_multiple_of(time_series.sample_interval)
+        if step_number.is_multiple_of(time_series.sample_interval)
         {
             let component_values = query.iter().collect::<Vec<_>>();
 
-            let sample = C::sample_aggregate(&component_values);
+            if !component_values.is_empty()
+            {
+                let sample = C::sample_aggregate(&component_values);
 
-            time_series.values.push(sample);
+                time_series.values.push(sample);
+                time_series.time.push(**step_number);
+            }
         }
     }
 }
@@ -136,12 +144,20 @@ where
         }
     }
 
-    fn time_series_sample(mut query: Query<(&C, &mut TimeSeriesData<C, I, O>)>)
+    fn time_series_sample(
+        mut query: Query<(&C, &mut TimeSeriesData<C, I, O>)>,
+        step_number: Res<StepNumber>,
+    )
     {
         for (component, mut time_series) in &mut query
         {
-            let sample = C::sample(component);
-            time_series.values.push(sample);
+            // only get new samples once every 'sample_interval' steps
+            if step_number.is_multiple_of(time_series.sample_interval)
+            {
+                let sample = C::sample(component);
+                time_series.values.push(sample);
+                time_series.time.push(**step_number);
+            }
         }
     }
 }

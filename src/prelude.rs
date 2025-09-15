@@ -7,7 +7,7 @@ pub use super::{
     error::*,
     plugins::{
         GridBounds, GridBounds2D, GridBounds3D, GridCoordinates, GridPosition, GridPosition2D,
-        GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D,
+        GridPosition3D, SpatialGrid, SpatialGrid2D, SpatialGrid3D, StepNumber,
     },
     simulation::Simulation,
     simulation_builder::SimulationBuilder,

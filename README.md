@@ -230,6 +230,24 @@ let average_net_worth_series: Vec<f64> = simulation.get_aggregate_time_series::<
 let average_net_worth_series_blue_hair: Vec<f64> = simulation.get_aggregate_time_series_filtered::<NetWorth, With<BlueHair>, _>().unwrap();
 ```
 
+### Built-in aggregators
+
+Several built-in aggregators are available for numeric types.
+These are automatically implemented for any component that implements sampling to a numeric type, for example `Sample<f32>`.
+
+```rust
+// compute the median net worth from all NetWorth components
+let median = simulation.sample_aggregate::<NetWorth, Median<_>>().unwrap();
+```
+
+Some available aggregators are:
+
+- `Minimum<T>`
+- `Maximum<T>`
+- `Mean<T>`
+- `Median<T>`
+- `Percentile<T, P>` (computes the P-th percentile)
+
 ## Performance
 
 When it comes to experiments like Monte Carlo, performance is typically of paramount importance since it defines their limits in terms of scope, size, length and granularity. Hence why I made the decision build this crate on top of bevy. The ECS architecture on offer here is likely the most memory-efficient and parallelizable way one can build such simulations, while still maintaining some agency of high-level programming.
